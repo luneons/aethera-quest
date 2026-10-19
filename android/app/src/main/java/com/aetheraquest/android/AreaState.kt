@@ -203,8 +203,15 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
         val old = state.players[key]
         val isSelf = key == selfUsername.lowercase() || requestedKey == selfUsername.lowercase() ||
             (old?.userId != null && old.userId == selfUserId) || (idFromUpdate != null && idFromUpdate == selfUserId)
-        if (old == null && !isSelf) return false
-        val next = (old ?: PlayerState(selfUsername, selfUserId)).copy(
+        // A `uotls` after the initial `moveToArea` is how newcomers arrive: the
+        // server names one player at a time, including someone who was never in
+        // the snapshot. Refusing them keeps the list frozen at join time.
+        val next = (old ?: PlayerState(
+            raw.stringOrNull("strUsername")?.ifBlank { null }
+                ?: raw.stringOrNull("uoName")?.ifBlank { null }
+                ?: name,
+            idFromUpdate ?: selfUserId.takeIf { isSelf },
+        )).copy(
             cell = raw.stringOrNull("strFrame") ?: old?.cell,
             pad = raw.stringOrNull("strPad") ?: old?.pad,
             hp = raw.intOrNull("intHP") ?: old?.hp,

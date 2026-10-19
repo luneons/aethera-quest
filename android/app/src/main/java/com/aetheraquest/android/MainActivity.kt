@@ -326,7 +326,8 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
     var pad by remember { mutableStateOf("Spawn") }
     var mapDraft by remember { mutableStateOf("") }
     var chatDraft by remember { mutableStateOf("") }
-    val grouped = remember(area) {
+    var entityFilter by remember { mutableStateOf(EntityFilter.ALL) }
+    val allRows = remember(area) {
         buildList {
             area.self?.let { add(EntityRow(it.cell ?: "Unknown", "Self", it.username, it.hp, it.maxHp, null)) }
             area.players.values.filter { it.username != area.self?.username }.forEach {
@@ -335,17 +336,25 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             area.monsters.values.filter { it.alive }.forEach {
                 add(EntityRow(it.cell ?: "Unknown", "Monster", it.name ?: "Monster #${it.mapId}", it.hp, it.maxHp, it.mapId))
             }
-        }.groupBy { it.cell }.toSortedMap(String.CASE_INSENSITIVE_ORDER)
+        }
     }
+    val grouped = remember(allRows, entityFilter) {
+        filterEntityRows(allRows, entityFilter)
+            .groupBy { it.cell }.toSortedMap(String.CASE_INSENSITIVE_ORDER)
+    }
+    val monsterCount = allRows.count { it.kind == "Monster" }
+    val playerCount = allRows.count { it.kind == "Player" || it.kind == "Self" }
     // Keys are computed per cell group so a duplicate never reaches LazyColumn.
     val keyed = remember(grouped) {
         grouped.mapValues { (_, entities) -> entityKeys(entities) }
     }
-    // Entities sharing our own cell: the only ones the radar may plot.
-    val sameCellEntities = remember(grouped, area.self?.cell) {
+    // Entities sharing our own cell: the only ones the radar may plot. Radar is
+    // intentionally independent from the list filter, so focusing the list on
+    // monsters does not make players silently disappear from situational view.
+    val sameCellEntities = remember(allRows, area.self?.cell) {
         val mine = area.self?.cell
         if (mine == null) emptyList()
-        else grouped.entries.firstOrNull { it.key.equals(mine, ignoreCase = true) }?.value.orEmpty()
+        else allRows.filter { it.cell.equals(mine, ignoreCase = true) }
     }
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(
@@ -454,6 +463,16 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Filter keeps a busy room readable: focusing on monsters hides the
+            // crowd, focusing on players hides the monsters.
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilterChip(entityFilter, EntityFilter.ALL, "All ${allRows.size}") { entityFilter = it }
+                FilterChip(entityFilter, EntityFilter.MONSTERS, "Monster $monsterCount") { entityFilter = it }
+                FilterChip(entityFilter, EntityFilter.PLAYERS, "Player $playerCount") { entityFilter = it }
+            }
+            nextFilterLabel(entityFilter, playerCount > 0, monsterCount > 0)?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = DimWhite)
+            }
             LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 grouped.forEach { (cellName, entities) ->
                     item(key = "header-$cellName") { Text(cellName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
@@ -557,6 +576,29 @@ private fun LegendDot(color: Color, label: String) {
         Box(Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(color))
         Text(label, style = MaterialTheme.typography.labelSmall, color = DimWhite)
     }
+}
+
+/** A single-select chip for the entity list filter. */
+@Composable
+private fun FilterChip(
+    current: EntityFilter,
+    value: EntityFilter,
+    label: String,
+    onSelect: (EntityFilter) -> Unit,
+) {
+    val selected = current == value
+    AssistChip(
+        onClick = { onSelect(value) },
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        colors = AssistChipDefaults.assistChipColors(
+            labelColor = if (selected) SpaceNavy else DimWhite,
+            containerColor = if (selected) NeonCyan else DarkSurface,
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (selected) NeonCyan else NeonCyan.copy(alpha = 0.35f),
+        ),
+    )
 }
 
 @Composable

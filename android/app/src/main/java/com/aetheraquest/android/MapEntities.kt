@@ -35,3 +35,34 @@ internal fun entityKeys(rows: List<EntityRow>): List<String> {
         if (count == 0) base else "$base#$count"
     }
 }
+
+/** Which kinds of entity the list should show. */
+enum class EntityFilter { ALL, MONSTERS, PLAYERS }
+
+/**
+ * Applies [filter] to [rows]. `Self` counts as a player: the point of the filter
+ * is to separate who is a character from what is a monster, and hiding yourself
+ * would leave the "players" view without a reference point.
+ */
+internal fun filterEntityRows(rows: List<EntityRow>, filter: EntityFilter): List<EntityRow> = when (filter) {
+    EntityFilter.ALL -> rows
+    EntityFilter.MONSTERS -> rows.filter { it.kind == "Monster" }
+    EntityFilter.PLAYERS -> rows.filter { it.kind == "Player" || it.kind == "Self" }
+}
+
+/**
+ * Explains an empty filtered list, or null when there is nothing worth saying.
+ *
+ * A filter that silently shows an empty screen looks broken, so an empty bucket
+ * is named: no monsters in the map versus no players in the room are different
+ * facts and the player should not have to guess which one they are looking at.
+ */
+internal fun nextFilterLabel(
+    filter: EntityFilter,
+    hasPlayers: Boolean,
+    hasMonsters: Boolean,
+): String? = when {
+    filter == EntityFilter.MONSTERS && !hasMonsters -> "No monsters in this map"
+    filter == EntityFilter.PLAYERS && !hasPlayers -> "No players here"
+    else -> null
+}
