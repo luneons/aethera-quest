@@ -54,6 +54,11 @@ class MainActivity : ComponentActivity() {
 fun AetheraQuestApp(vm: AetheraQuestViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    // Encrypted login storage is attached once; the store only keeps
+    // applicationContext, so no Activity is leaked into the ViewModel.
+    LaunchedEffect(Unit) {
+        vm.attachCredentialStore(AndroidCredentialStore(context))
+    }
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -192,7 +197,27 @@ private fun LoginScreen(ui: UiState, vm: AetheraQuestViewModel) {
             singleLine = true, visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
-        Text("Password is kept only in memory until login completes.", style = MaterialTheme.typography.bodySmall)
+        Text(
+            if (ui.credentialsSaved) "Login saved on this device (encrypted)."
+            else "Login is not saved yet.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SecondaryButton(
+                text = if (ui.credentialsSaved) "Update saved login" else "Save login",
+                onClick = vm::saveCredentials,
+                modifier = Modifier.weight(1f),
+                enabled = !ui.isLoading,
+            )
+            if (ui.credentialsSaved) {
+                SecondaryButton(
+                    text = "Forget",
+                    onClick = vm::clearSavedCredentials,
+                    modifier = Modifier.weight(1f),
+                    enabled = !ui.isLoading,
+                )
+            }
+        }
         Spacer(Modifier.height(4.dp))
         PrimaryButtonWide(
             text = "Login",

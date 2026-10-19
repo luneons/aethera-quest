@@ -39,6 +39,8 @@ data class UiState(
     val className: String = "",
     /** Live skill table from `sAct`. */
     val skills: Map<String, SkillInfo> = emptyMap(),
+    /** Whether an encrypted login is currently stored on this device. */
+    val credentialsSaved: Boolean = false,
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -102,6 +104,7 @@ class AetheraQuestViewModel : ViewModel() {
     val ui: StateFlow<UiState> = _ui.asStateFlow()
     private val connection = GameConnection()
     private var loginToken: LoginToken? = null
+    private var credentialStore: AndroidCredentialStore? = null
 
     init {
         viewModelScope.launch {
@@ -125,6 +128,45 @@ class AetheraQuestViewModel : ViewModel() {
     fun updateUsername(v: String) { _ui.value = _ui.value.copy(username = v) }
     fun updatePassword(v: String) { _ui.value = _ui.value.copy(password = v) }
     fun updateMapName(v: String) { _ui.value = _ui.value.copy(mapName = v) }
+
+    /**
+     * Attach device-local encrypted storage and restore its login once.
+     * Context is held only by the store's applicationContext, never an Activity.
+     */
+    fun attachCredentialStore(store: AndroidCredentialStore) {
+        if (credentialStore != null) return
+        credentialStore = store
+        _ui.value = restoreSavedCredentials(_ui.value, runCatching { store.load() }.getOrNull())
+    }
+
+    fun saveCredentials() {
+        val credentials = credentialsToSave(_ui.value.username, _ui.value.password)
+        val store = credentialStore
+        if (credentials == null) {
+            _ui.value = _ui.value.copy(error = "Enter username and password first")
+            return
+        }
+        if (store == null) {
+            _ui.value = _ui.value.copy(error = "Secure storage is not ready")
+            return
+        }
+        runCatching { store.save(credentials) }
+            .onSuccess {
+                _ui.value = _ui.value.copy(
+                    username = credentials.username,
+                    credentialsSaved = true,
+                    error = null,
+                )
+            }
+            .onFailure { _ui.value = _ui.value.copy(error = "Could not save login securely") }
+    }
+
+    fun clearSavedCredentials() {
+        val store = credentialStore ?: return
+        runCatching { store.clear() }
+            .onSuccess { _ui.value = _ui.value.copy(credentialsSaved = false, error = null) }
+            .onFailure { _ui.value = _ui.value.copy(error = "Could not remove saved login") }
+    }
 
     fun selectServer(server: AqwServer) {
         _ui.value = _ui.value.copy(selectedServer = server)
