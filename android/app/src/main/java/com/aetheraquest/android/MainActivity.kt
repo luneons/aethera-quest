@@ -368,15 +368,35 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                     color = NeonCyan,
                     modifier = Modifier.weight(1f),
                 )
+                // Auto attack replaces the old single-shot button: it keeps
+                // firing and interleaves the equipped class's own rotation.
                 Button(
-                    onClick = vm::attack,
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonPink, contentColor = PureWhite),
+                    onClick = vm::toggleAutoAttack,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (ui.autoAttacking) HpGreen else NeonPink,
+                        contentColor = PureWhite,
+                    ),
                 ) {
-                    val target = resolveAttackTarget(area, ui.selectedMonsterId)
-                    Text(if (target == null) "Attack" else "Attack #$target", fontWeight = FontWeight.Bold)
+                    Text(if (ui.autoAttacking) "Auto ON" else "Auto", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(onClick = vm::toggleAfk) { Text(if (ui.status.afk) "AFK on" else "AFK off") }
                 OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+            }
+            // Class and rotation are shown so the user can see what the loop
+            // decided to use instead of guessing why a skill never fired.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val className = ui.className.ifBlank { "Class unknown" }
+                Text(className, style = MaterialTheme.typography.bodySmall, color = NeonCyan)
+                val rotation = rotationFor(ui.className)
+                if (rotation != null) {
+                    Text(
+                        rotation.joinToString(" → "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DimWhite,
+                    )
+                } else if (ui.className.isNotBlank()) {
+                    Text("no rotation · auto attack only", style = MaterialTheme.typography.bodySmall, color = DimWhite)
+                }
             }
             Text("Room ${area.roomId ?: "–"} · generation ${area.generation}", style = MaterialTheme.typography.bodySmall)
             area.self?.let {

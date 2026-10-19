@@ -21,7 +21,7 @@ data class CombatPlan(
  * The pad is derived from the monster's own pad when the snapshot carries one
  * and otherwise falls back to the client default ("Left").
  */
-internal fun combatPlan(area: AreaSnapshot, selected: Int?): CombatPlan? {
+internal fun combatPlan(area: AreaSnapshot, selected: Int?, unlimitedRange: Boolean = false): CombatPlan? {
     val self = area.self ?: return null
     val target = resolveAttackTarget(area, selected) ?: return null
     val monster = area.monsters[target] ?: return null
@@ -30,7 +30,10 @@ internal fun combatPlan(area: AreaSnapshot, selected: Int?): CombatPlan? {
     val sameCell = self.cell != null && self.cell.equals(cell, ignoreCase = true)
     return CombatPlan(
         targetMapId = target,
-        moveFirst = !sameCell,
+        // The server resolves combat by MonMapID and does not validate distance,
+        // so with unlimited range the client fires from wherever it stands
+        // instead of walking into the monster's cell first.
+        moveFirst = !sameCell && !unlimitedRange,
         cell = cell,
         pad = pad,
     )

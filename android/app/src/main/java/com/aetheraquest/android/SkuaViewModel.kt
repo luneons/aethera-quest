@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 internal const val WALK_TICK_MS = 220L
 internal const val WALK_STEP = 55
 internal const val RUN_STEP = 110
+/** How often the auto-attack loop fires. 600 ms matches a human mash cadence. */
+internal const val AUTO_TICK_MS = 600L
 
 data class UiState(
     val screen: Screen = Screen.LOGIN,
@@ -31,6 +33,12 @@ data class UiState(
     val headlessStatus: ConnectionStatus = ConnectionStatus(),
     val running: Boolean = false,
     val trackedPosition: Pair<Int, Int>? = null,
+    /** True while the auto-attack loop is firing. */
+    val autoAttacking: Boolean = false,
+    /** Current class name from `updateClass` / `loadInventoryBig`. */
+    val className: String = "",
+    /** Live skill table from `sAct`. */
+    val skills: Map<String, SkillInfo> = emptyMap(),
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -107,6 +115,8 @@ class AetheraQuestViewModel : ViewModel() {
                         status.message != "Disconnected" &&
                         _ui.value.screen == Screen.MAP
                     ) status.message else _ui.value.error,
+                    className = status.className.ifBlank { _ui.value.className },
+                    skills = status.skills.ifEmpty { _ui.value.skills },
                 )
             }
         }
@@ -307,6 +317,108 @@ class AetheraQuestViewModel : ViewModel() {
 
     fun selectMonster(mapId: Int?) {
         _ui.value = _ui.value.copy(selectedMonsterId = mapId)
+        // A new target restarts the rotation, matching the reference client.
+        autoState = autoState.copy(targetMapId = mapId, index = 0)
+    }
+
+    private var autoState = AutoAttackState()
+    private var autoJob: Job? = null
+    private var lastUsed = mutableMapOf<String, Long>()
+    private var lastTickAt = 0L
+
+    /** True when the attack loop should keep firing. */
+    fun toggleAutoAttack() {
+        if (_ui.value.autoAttacking) stopAutoAttack() else startAutoAttack()
+    }
+
+    fun startAutoAttack() {
+        val state = _ui.value
+        if (state.status.phase != ConnectionPhase.IN_MAP) {
+            _ui.value = state.copy(error = "Enter a map first")
+            return
+        }
+        if (resolveAttackTarget(state.status.area, state.selectedMonsterId) == null) {
+            _ui.value = state.copy(error = "No living monster in this map")
+            return
+        }
+        _ui.value = state.copy(autoAttacking = true, error = null)
+        autoState = autoState.copy(enabled = true, index = 0)
+        lastUsed.clear()
+        lastTickAt = 0L
+        autoJob?.cancel()
+        autoJob = viewModelScope.launch {
+            while (isActive) {
+                tickAutoAttack()
+                delay(AUTO_TICK_MS)
+            }
+        }
+    }
+
+    fun stopAutoAttack() {
+        autoJob?.cancel()
+        autoJob = null
+        autoState = autoState.copy(enabled = false, index = 0)
+        _ui.value = _ui.value.copy(autoAttacking = false)
+    }
+
+    /**
+     * One auto-attack step: pick a living target, decide the next skill from
+     * the class rotation and the live `sAct` table, then send it.
+     *
+     * The loop never waits for a skill to become available — it sends whatever
+     * is legal now, which is what keeps damage flowing during cooldowns.
+     */
+    private suspend fun tickAutoAttack() {
+        val state = _ui.value
+        if (state.status.phase != ConnectionPhase.IN_MAP) {
+            stopAutoAttack()
+            return
+        }
+        val area = state.status.area
+        val target = resolveAttackTarget(area, state.selectedMonsterId)
+        if (target == null) {
+            // Every monster is dead: keep the loop alive so respawns are picked
+            // up automatically instead of forcing the user to press again.
+            return
+        }
+        val className = state.status.className.ifBlank { state.className }
+        val skills = state.status.skills.ifEmpty { state.skills }
+        val rotation = rotationFor(className)
+        val now = System.currentTimeMillis()
+
+        val decision = nextAutoAction(
+            state = autoState.copy(className = className, targetMapId = target),
+            rotation = rotation,
+            skills = skills,
+            nowMs = now,
+            lastUsed = lastUsed,
+            mana = state.status.area.self?.let { Int.MAX_VALUE } ?: Int.MAX_VALUE,
+            targetMapId = target,
+            previousClassName = autoState.className.takeIf { it.isNotBlank() },
+        ) ?: return
+
+        // Respect the action's own cooldown so the loop does not spam a skill
+        // the server will reject; `aa` keeps the swing going in between.
+        val info = skills[decision.ref]
+        val readyAt = (lastUsed[decision.ref] ?: 0L) + (info?.cooldownMs ?: 0L)
+        if (now < readyAt) {
+            val fallbackReadyAt = (lastUsed["aa"] ?: 0L) + (skills["aa"]?.cooldownMs ?: 0L)
+            if (now < fallbackReadyAt) return
+            sendCombat("aa", target, now)
+            return
+        }
+        sendCombat(decision.ref, target, now)
+        autoState = autoState.copy(
+            className = className,
+            targetMapId = target,
+            index = decision.nextIndex,
+        )
+    }
+
+    private suspend fun sendCombat(ref: String, target: Int, now: Long) {
+        runCatching { connection.cast(target, ref) }
+            .onSuccess { lastUsed[ref] = now }
+            .onFailure { _ui.value = _ui.value.copy(error = it.message ?: "Attack failed") }
     }
 
     fun attack() {

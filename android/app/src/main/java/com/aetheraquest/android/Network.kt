@@ -95,6 +95,8 @@ data class ConnectionStatus(
     val chat: List<ChatMessage> = emptyList(),
     val afk: Boolean = false,
     val transferring: Boolean = false,
+    val className: String = "",
+    val skills: Map<String, SkillInfo> = emptyMap(),
 )
 
 class ConnectionSession {
@@ -123,6 +125,8 @@ class PacketInbox {
 
 class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : Closeable {
     private val statusFlow = MutableStateFlow(ConnectionStatus())
+    /** Exposes the live skill table from the most recent `sAct` packet. */
+    val skillFlow = MutableStateFlow<Map<String, SkillInfo>>(emptyMap())
     val status = statusFlow.asStateFlow()
     private val stateLock = Any()
     private val sessions = ConnectionSession()
@@ -325,6 +329,22 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
         send(session, SfsProtocol.attack(roomId, sequence, action, "m:$mapId"))
     }
 
+    /**
+     * Sends one combat action. `action` is a skill ref from the live `sAct`
+     * payload (`aa`, `a1`..`a4`), never a guess.
+     */
+    suspend fun cast(mapId: Int, action: String) = withContext(Dispatchers.IO) {
+        require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
+        require(mapId > 0) { "Pick a monster first" }
+        require(action in setOf("aa", "a1", "a2", "a3", "a4")) { "Unsupported action: $action" }
+        val session = currentSession()
+        val sequence = synchronized(stateLock) {
+            ensureCurrent(session)
+            combatSequence.also { combatSequence = (combatSequence + 1) % 31 }
+        }
+        send(session, SfsProtocol.attack(roomId, sequence, action, "m:$mapId"))
+    }
+
     suspend fun sendChat(message: String, channel: String = "zone") = withContext(Dispatchers.IO) {
         require(message.isNotBlank()) { "Message is required" }
         require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
@@ -388,6 +408,23 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
                     transferResult = null
                     transferMap = null
                     pending.complete(area)
+                }
+            }
+            // Combat state is independent of the area snapshot: the skill table
+            // and the equipped class arrive on their own packets, so they are
+            // read even when the area reducer reports no change.
+            SfsProtocol.parseJsonPacket(packet)?.let { parsed ->
+                when (parsed.command) {
+                    "sAct" -> {
+                        val table = parseSkillTable(parsed.payload)
+                        if (table.isNotEmpty()) {
+                            skillFlow.value = table
+                            statusFlow.value = statusFlow.value.copy(skills = table)
+                        }
+                    }
+                    "updateClass", "loadInventoryBig" -> parseClassName(parsed.payload)?.let { name ->
+                        statusFlow.value = statusFlow.value.copy(className = name)
+                    }
                 }
             }
         }
