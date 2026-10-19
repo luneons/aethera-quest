@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -36,13 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { AetheraQuestApp() } }
+        setContent { AetheraTheme { AetheraQuestApp() } }
     }
 }
 
@@ -75,47 +78,113 @@ fun AetheraQuestApp(vm: AetheraQuestViewModel = viewModel()) {
         }
     }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Image(
-                    painter = painterResource(R.drawable.brand_mark),
-                    contentDescription = null,
-                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+        Column(Modifier.fillMaxSize()) {
+            BrandHeader()
+            Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
+                StatusLine(
+                    text = if (ui.screen == Screen.HEADLESS) ui.headlessStatus.message else ui.status.message,
+                    connected = ui.status.phase != ConnectionPhase.DISCONNECTED,
                 )
-                Text("Aethera Quest", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            }
-            Text(if (ui.screen == Screen.HEADLESS) ui.headlessStatus.message else ui.status.message, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(12.dp))
-            ui.error?.let {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(it, Modifier.weight(1f), color = MaterialTheme.colorScheme.onErrorContainer)
-                        TextButton(onClick = vm::clearError) { Text("Dismiss") }
+                Spacer(Modifier.height(12.dp))
+                ui.error?.let {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(it, Modifier.weight(1f), color = MaterialTheme.colorScheme.onErrorContainer)
+                            TextButton(onClick = vm::clearError) { Text("Dismiss") }
+                        }
                     }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
-            }
-            Box(Modifier.weight(1f)) {
-                when (ui.screen) {
-                    Screen.LOGIN -> LoginScreen(ui, vm)
-                    Screen.SERVER -> ServerScreen(ui, vm)
-                    Screen.JOIN -> JoinScreen(ui, vm)
-                    Screen.MAP -> MapScreen(ui, vm)
-                    Screen.HEADLESS -> HeadlessScreen(ui, vm, onStop = {
-                        context.stopService(android.content.Intent(context, HeadlessService::class.java))
-                        HeadlessRegistry.clear()
-                        vm.stopHeadlessUi()
-                    })
+                Box(Modifier.weight(1f)) {
+                    when (ui.screen) {
+                        Screen.LOGIN -> LoginScreen(ui, vm)
+                        Screen.SERVER -> ServerScreen(ui, vm)
+                        Screen.JOIN -> JoinScreen(ui, vm)
+                        Screen.MAP -> MapScreen(ui, vm)
+                        Screen.HEADLESS -> HeadlessScreen(ui, vm, onStop = {
+                            context.stopService(android.content.Intent(context, HeadlessService::class.java))
+                            HeadlessRegistry.clear()
+                            vm.stopHeadlessUi()
+                        })
+                    }
+                    if (ui.isLoading) CircularProgressIndicator(Modifier.align(Alignment.Center), color = NeonCyan)
                 }
-                if (ui.isLoading) CircularProgressIndicator(Modifier.align(Alignment.Center))
             }
         }
+    }
+}
+
+/**
+ * Brand bar: dark navy panel with a cyan rule underneath, echoing the neon
+ * frame of the launcher icon.
+ */
+@Composable
+private fun BrandHeader() {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(DarkPanel, SpaceNavy)))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Image(
+                painter = painterResource(R.drawable.brand_mark),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(1.dp, NeonCyan.copy(alpha = 0.55f), RoundedCornerShape(10.dp)),
+            )
+            Column {
+                Text(
+                    "AETHERA",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 4.sp,
+                    color = PureWhite,
+                )
+                Text(
+                    "QUEST",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 6.sp,
+                    color = NeonCyan,
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color.Transparent, NeonCyan, NeonGreen, Color.Transparent),
+                    ),
+                ),
+        )
+    }
+}
+
+/** Connection state as a coloured pill, so status is readable at a glance. */
+@Composable
+private fun StatusLine(text: String, connected: Boolean) {
+    val dot = if (connected) HpGreen else NeonAmber
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(dot))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = dot)
     }
 }
 
 @Composable
 private fun LoginScreen(ui: UiState, vm: AetheraQuestViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Sign in to enter the realm",
+            style = MaterialTheme.typography.titleMedium,
+            color = NeonCyan,
+        )
         OutlinedTextField(ui.username, vm::updateUsername, Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true)
         OutlinedTextField(
             ui.password, vm::updatePassword, Modifier.fillMaxWidth(), label = { Text("Password") },
@@ -123,7 +192,13 @@ private fun LoginScreen(ui: UiState, vm: AetheraQuestViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
         Text("Password is kept only in memory until login completes.", style = MaterialTheme.typography.bodySmall)
-        Button(onClick = vm::login, enabled = !ui.isLoading, modifier = Modifier.fillMaxWidth()) { Text("Login") }
+        Spacer(Modifier.height(4.dp))
+        Button(
+            onClick = vm::login,
+            enabled = !ui.isLoading,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = SpaceNavy),
+        ) { Text("Login", fontWeight = FontWeight.Bold) }
     }
 }
 
@@ -211,9 +286,9 @@ private fun AnalogPad(
     onRelease: () -> Unit,
 ) {
     var knob by remember { mutableStateOf(Offset.Zero) }
-    val ringColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-    val knobColor = MaterialTheme.colorScheme.primary
-    val background = MaterialTheme.colorScheme.surfaceVariant
+    val ringColor = NeonCyan.copy(alpha = 0.30f)
+    val knobColor = NeonCyan
+    val background = DarkPanel
     Canvas(
         modifier
             .pointerInput(Unit) {
@@ -230,12 +305,14 @@ private fun AnalogPad(
                     onChange(knob.x / limit.coerceAtLeast(1f), knob.y / limit.coerceAtLeast(1f))
                 }
             }
+            .border(1.dp, NeonCyan.copy(alpha = 0.45f), RoundedCornerShape(50))
             .background(background, RoundedCornerShape(50)),
     ) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val radius = minOf(size.width, size.height) / 2f
-        drawCircle(ringColor, radius * 0.62f, center)
-        drawCircle(knobColor, radius * 0.26f, center + knob)
+        drawCircle(ringColor, radius * 0.62f, center, style = Stroke(width = 2f))
+        drawCircle(knobColor.copy(alpha = 0.18f), radius * 0.34f, center + knob)
+        drawCircle(knobColor, radius * 0.24f, center + knob)
     }
 }
 
@@ -268,11 +345,19 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(area.mapName ?: "Loading map…", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                Button(onClick = vm::attack) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    area.mapName ?: "Loading map…",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = NeonCyan,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = vm::attack,
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonPink, contentColor = PureWhite),
+                ) {
                     val target = resolveAttackTarget(area, ui.selectedMonsterId)
-                    Text(if (target == null) "Attack" else "Attack #$target")
+                    Text(if (target == null) "Attack" else "Attack #$target", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(onClick = vm::toggleAfk) { Text(if (ui.status.afk) "AFK on" else "AFK off") }
                 OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
@@ -361,10 +446,14 @@ private fun PositionRadar(area: AreaSnapshot, tracked: Pair<Int, Int>?, modifier
     val position = visibleMapPosition(area, tracked)
     val point = position?.let { radarProject(it.x, it.y) }
     val confirmed = position?.confirmed == true
-    val baseColor = MaterialTheme.colorScheme.surfaceVariant
-    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-    val dotColor = if (confirmed) Color(0xFF00C853) else MaterialTheme.colorScheme.tertiary
-    Canvas(modifier.background(baseColor, RoundedCornerShape(12.dp))) {
+    val baseColor = DarkPanel
+    val gridColor = NeonCyan.copy(alpha = 0.16f)
+    val dotColor = if (confirmed) HpGreen else NeonPink
+    Canvas(
+        modifier
+            .border(1.dp, NeonCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .background(baseColor, RoundedCornerShape(12.dp)),
+    ) {
         // Divider lines to suggest the map square.
         val thirdX = size.width / 3f
         val thirdY = size.height / 3f
@@ -378,6 +467,7 @@ private fun PositionRadar(area: AreaSnapshot, tracked: Pair<Int, Int>?, modifier
             // Unconfirmed positions get a hollow ring so they cannot be
             // mistaken for a server-confirmed one.
             if (confirmed) {
+                drawCircle(dotColor.copy(alpha = 0.22f), 12f, Offset(px, py))
                 drawCircle(dotColor, 6f, Offset(px, py))
             } else {
                 drawCircle(dotColor, 6f, Offset(px, py), style = Stroke(width = 2.5f))
@@ -388,7 +478,7 @@ private fun PositionRadar(area: AreaSnapshot, tracked: Pair<Int, Int>?, modifier
 
 @Composable
 private fun Schematic(groups: Map<String, List<EntityRow>>, modifier: Modifier = Modifier) {
-    Canvas(modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))) {
+    Canvas(modifier.background(DarkPanel, RoundedCornerShape(12.dp))) {
         if (groups.isEmpty()) return@Canvas
         val columns = kotlin.math.ceil(kotlin.math.sqrt(groups.size.toDouble())).toInt().coerceAtLeast(1)
         val rows = kotlin.math.ceil(groups.size / columns.toDouble()).toInt()
@@ -397,7 +487,7 @@ private fun Schematic(groups: Map<String, List<EntityRow>>, modifier: Modifier =
         groups.entries.forEachIndexed { index, (_, entities) ->
             val cx = (index % columns + .5f) * cellWidth
             val cy = (index / columns + .5f) * cellHeight
-            drawCircle(Color(0xFF455A64), minOf(cellWidth, cellHeight) * .30f, Offset(cx, cy))
+            drawCircle(NeonCyan.copy(alpha = 0.14f), minOf(cellWidth, cellHeight) * .30f, Offset(cx, cy))
             entities.forEachIndexed { entityIndex, entity -> drawEntity(entity, cx, cy, entityIndex, entities.size) }
         }
     }
@@ -407,24 +497,82 @@ private fun DrawScope.drawEntity(entity: EntityRow, cx: Float, cy: Float, index:
     val angle = (index.toFloat() / count.coerceAtLeast(1)) * Math.PI.toFloat() * 2
     val radius = 25f
     val color = when (entity.kind) {
-        "Self" -> Color(0xFF00C853)
-        "Player" -> Color(0xFF29B6F6)
-        else -> Color(0xFFFF5252)
+        "Self" -> HpGreen
+        "Player" -> NeonCyan
+        else -> NeonPink
     }
     drawCircle(color, 10f, Offset(cx + kotlin.math.cos(angle) * radius, cy + kotlin.math.sin(angle) * radius))
 }
 
 @Composable
 private fun EntityCard(entity: EntityRow, selected: Boolean = false, onClick: () -> Unit = {}) {
-    Card(onClick = onClick, colors = CardDefaults.cardColors(
-        containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-    )) {
-        Column(Modifier.fillMaxWidth().padding(10.dp)) {
-            Row { Text(entity.name, Modifier.weight(1f)); Text(entity.kind) }
+    val accent = when (entity.kind) {
+        "Self" -> NeonGreen
+        "Player" -> NeonCyan
+        else -> NeonPink
+    }
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) NeonCyanDark else MaterialTheme.colorScheme.surface,
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) NeonCyan else accent.copy(alpha = 0.35f),
+        ),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    entity.name,
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) PureWhite else MaterialTheme.colorScheme.onSurface,
+                )
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(accent.copy(alpha = 0.18f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        entity.kind,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accent,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
             val max = entity.maxHp ?: 0
-            val progress = if (max > 0) (entity.hp ?: 0).toFloat() / max else 0f
-            LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, Modifier.fillMaxWidth())
-            Text("HP ${entity.hp ?: "?"}/${entity.maxHp ?: "?"}", style = MaterialTheme.typography.bodySmall)
+            val hp = entity.hp ?: 0
+            val progress = if (max > 0) hp.toFloat() / max else 0f
+            val ratio = progress.coerceIn(0f, 1f)
+            val barColor = when {
+                ratio > 0.5f -> HpGreen
+                ratio > 0.2f -> HpYellow
+                else -> HpRed
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(DarkPanel),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(ratio)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(50))
+                        .background(barColor),
+                )
+            }
+            Text(
+                "HP ${entity.hp ?: "?"}/${entity.maxHp ?: "?"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = DimWhite,
+            )
         }
     }
 }
