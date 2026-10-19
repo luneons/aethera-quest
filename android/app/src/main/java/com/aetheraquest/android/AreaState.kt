@@ -13,6 +13,14 @@ data class PlayerState(
     val state: Int? = null,
     val x: Int? = null,
     val y: Int? = null,
+    val mp: Int? = null,
+    val maxMp: Int? = null,
+    /**
+     * Set from the authoritative death signals: `playerDeath` or an empty
+     * `"p":{...:{}}` entry, which is how the server reports a death before it
+     * sends any HP numbers. Cleared by the next update carrying live HP.
+     */
+    val dead: Boolean = false,
 )
 
 data class MonsterState(
@@ -120,6 +128,7 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
             "uotls", "tempSta" -> updatePlayer(
                 obj.stringOrNull("unm") ?: obj.stringOrNull("uoName") ?: "", updates,
             )
+            "playerDeath" -> handlePlayerDeath(obj)
             else -> false
         }
     }
@@ -143,9 +152,37 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
             if (changed) state = state.copy(monsters = next)
         }
         obj.optJSONObject("p")?.let { players ->
-            players.keys().forEach { name -> players.optJSONObject(name)?.let { updatePlayer(name, it) } }
+            players.keys().forEach { name ->
+                val raw = players.optJSONObject(name) ?: return@forEach
+                // An empty player object is the server's death notice: the
+                // killing blow arrives before any HP numbers do.
+                val touched = if (raw.length() == 0) markPlayerDead(name) else updatePlayer(name, raw)
+                if (touched) changed = true
+            }
         }
         return changed
+    }
+
+    /** `playerDeath` names the victim by user id; only self can be revived here. */
+    private fun handlePlayerDeath(obj: JSONObject): Boolean {
+        val victimId = obj.intOrNull("userID") ?: obj.intOrNull("uid") ?: obj.intOrNull("iUserID")
+        val self = state.self ?: return false
+        if (victimId != null && self.userId != null && victimId != self.userId) return false
+        return markPlayerDead(self.username)
+    }
+
+    private fun markPlayerDead(name: String): Boolean {
+        val key = state.players.entries.firstOrNull { it.key.equals(name.trim(), true) }?.key
+            ?: state.self?.username?.lowercase()
+            ?: return false
+        val current = state.players[key] ?: state.self ?: return false
+        if (current.dead && (current.hp ?: 0) <= 0) return false
+        val next = current.copy(hp = 0, state = 0, dead = true)
+        state = state.copy(
+            players = state.players + (key to next),
+            self = if (key == state.self?.username?.lowercase()) next else state.self,
+        )
+        return true
     }
 
     private fun feedString(packet: StringPacket): Boolean = when (packet.command) {
@@ -219,6 +256,11 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
             state = raw.intOrNull("intState") ?: old?.state,
             x = raw.intOrNull("tx") ?: old?.x,
             y = raw.intOrNull("ty") ?: old?.y,
+            mp = raw.intOrNull("intMP") ?: old?.mp,
+            maxMp = raw.intOrNull("intMPMax") ?: old?.maxMp,
+            // A live HP number is the server saying "alive again"; without this
+            // the death latch would never clear and respawn would keep firing.
+            dead = if ((raw.intOrNull("intHP") ?: 0) > 0) false else old?.dead ?: false,
         )
         state = state.copy(
             players = state.players + (key to next),
@@ -235,10 +277,11 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
     private fun player(raw: JSONObject): PlayerState? {
         val username = raw.stringOrNull("uoName") ?: raw.stringOrNull("strUsername") ?: return null
         return PlayerState(
-            username, raw.intOrNull("uid") ?: raw.intOrNull("iUserID"),
+            username, raw.playerId(),
             raw.stringOrNull("strFrame"), raw.stringOrNull("strPad"),
             raw.intOrNull("intHP"), raw.intOrNull("intHPMax"), raw.intOrNull("intState"),
             raw.intOrNull("tx"), raw.intOrNull("ty"),
+            raw.intOrNull("intMP"), raw.intOrNull("intMPMax"),
         )
     }
 
@@ -264,6 +307,14 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
 
 private fun JSONObject.intOrNull(key: String): Int? = if (!has(key) || isNull(key)) null else
     opt(key)?.toString()?.toIntOrNull()
+
+/**
+ * Player id across the shapes the server uses: `uoBranch` names it `entID`,
+ * while `uotls`/`playerDeath` use `uid` or `iUserID`. Missing this made
+ * `self.userId` null, and without a uid `resPlayerTimed` can never be addressed.
+ */
+private fun JSONObject.playerId(): Int? =
+    intOrNull("entID") ?: intOrNull("uid") ?: intOrNull("iUserID") ?: intOrNull("userID")
 private fun JSONObject.stringOrNull(key: String): String? = optString(key).trim().ifEmpty { null }
 private fun JSONObject.arrayObjects(key: String): List<JSONObject> {
     val array: JSONArray = optJSONArray(key) ?: return emptyList()

@@ -45,6 +45,12 @@ data class UiState(
     val rememberCredentials: Boolean = false,
     /** Full-screen combat control layout. Back closes it. */
     val combatMode: Boolean = false,
+    /**
+     * Absolute time each combat ref becomes usable again, derived from the live
+     * `sAct` cooldown of that class skill. The UI counts down from this map so
+     * the number on a button is the same cooldown the button obeys.
+     */
+    val skillReadyAt: Map<String, Long> = emptyMap(),
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -142,12 +148,13 @@ class AetheraQuestViewModel : ViewModel() {
                     val uid = respawnState.userId
                     if (uid != null) {
                         val ok = runCatching { connection.respawnPlayer(uid) }.isSuccess
-                        // On failure keep the death latch and retry after a short
-                        // backoff instead of hammering the socket every tick.
-                        respawnState = if (ok) respawnState.copy(shouldSend = false, sent = true)
-                        else respawnState.copy(
+                        // Count the attempt either way: a write that throws must
+                        // not retry forever, and a write that succeeds must not
+                        // be repeated on the next tick.
+                        respawnState = respawnState.copy(
                             shouldSend = false,
-                            deathAtMs = (respawnState.deathAtMs ?: 0L) + RESPAWN_RETRY_BACKOFF_MS,
+                            attempts = respawnState.attempts + 1,
+                            sent = respawnState.sent || ok,
                         )
                     }
                 }
@@ -378,13 +385,27 @@ class AetheraQuestViewModel : ViewModel() {
             _ui.value = state.copy(error = "No living monster selected")
             return
         }
-        if (!manualSkillEnabled(index, state.status.skills.ifEmpty { state.skills })) {
-            _ui.value = state.copy(error = "A$index is not available for this class")
+        val skills = state.status.skills.ifEmpty { state.skills }
+        val readiness = manualSkillReadiness(
+            index, skills, state.skillReadyAt, System.currentTimeMillis(), state.status.area.self?.mp,
+        )
+        if (!readiness.enabled) {
+            _ui.value = state.copy(error = readiness.reason ?: "A$index is not ready")
             return
         }
         when (action) {
             is ManualCombatAction.Cast -> viewModelScope.launch {
+                val sentAt = System.currentTimeMillis()
                 runCatching { connection.cast(action.mapId, action.ref) }
+                    .onSuccess {
+                        // Start the countdown from the class's own `cd`, so the
+                        // number shown is exactly what the server will enforce.
+                        val cd = skills[action.ref]?.cooldownMs ?: 0L
+                        _ui.value = _ui.value.copy(
+                            skillReadyAt = _ui.value.skillReadyAt + (action.ref to sentAt + cd),
+                            error = null,
+                        )
+                    }
                     .onFailure { _ui.value = _ui.value.copy(error = it.message ?: "Skill failed") }
             }
         }
@@ -504,7 +525,7 @@ class AetheraQuestViewModel : ViewModel() {
             skills = skills,
             nowMs = now,
             lastUsed = lastUsed,
-            mana = state.status.area.self?.let { Int.MAX_VALUE } ?: Int.MAX_VALUE,
+            mana = state.status.area.self?.mp ?: Int.MAX_VALUE,
             targetMapId = target,
             previousClassName = autoState.className.takeIf { it.isNotBlank() },
         ) ?: return

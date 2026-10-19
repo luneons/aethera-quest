@@ -20,12 +20,15 @@ internal fun parseSkillTable(root: JSONObject): Map<String, SkillInfo> {
     for (i in 0 until active.length()) {
         val raw = active.optJSONObject(i) ?: continue
         val ref = raw.optString("ref")
-        if (ref !in setOf("aa", "a1", "a2", "a3", "a4")) continue
+        // `i1` is the consumable slot the server publishes alongside class
+        // skills; keeping it lets A5 light up only when it really exists.
+        if (ref !in setOf("aa", "a1", "a2", "a3", "a4", "i1")) continue
         result[ref] = SkillInfo(
             ref = ref,
             cooldownMs = raw.optLong("cd", 0L),
             manaCost = raw.optInt("mp", 0),
             usable = raw.optBoolean("isOK", true),
+            name = raw.optString("nam").trim(),
         )
     }
     return result

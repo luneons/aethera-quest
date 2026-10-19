@@ -12,6 +12,8 @@ data class SkillInfo(
     val cooldownMs: Long = 0,
     val manaCost: Int = 0,
     val usable: Boolean = true,
+    /** Display name from `sAct.nam`, e.g. "Fireball". */
+    val name: String = "",
 )
 
 /**

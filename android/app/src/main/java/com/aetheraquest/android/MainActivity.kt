@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -749,9 +750,19 @@ private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
     val area = ui.status.area
     val target = resolveAttackTarget(area, ui.selectedMonsterId)?.let(area.monsters::get)
     val self = area.self
+    // One clock for the whole screen so every countdown advances together.
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMs = System.currentTimeMillis()
+            delay(200)
+        }
+    }
+    val skills = ui.status.skills.ifEmpty { ui.skills }
+    val className = ui.status.className.ifBlank { ui.className }
     Column(
-        Modifier.fillMaxSize().padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SecondaryButton("Back", vm::closeCombatMode)
@@ -766,58 +777,171 @@ private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
                 autoStyle.container,
             )
         }
+
+        // Player vitals: the two bars the game itself shows.
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.35f)),
+        ) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    self?.username ?: "You",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = PureWhite,
+                )
+                ResourceBar(
+                    label = "HP",
+                    value = self?.hp,
+                    max = self?.maxHp,
+                    barColor = when {
+                        barFraction(self?.hp, self?.maxHp) <= 0.25f -> HpRed
+                        barFraction(self?.hp, self?.maxHp) <= 0.55f -> HpYellow
+                        else -> HpGreen
+                    },
+                )
+                ResourceBar(
+                    label = "MP",
+                    value = self?.mp,
+                    max = self?.maxMp,
+                    barColor = NeonCyan,
+                )
+                if (self?.dead == true) {
+                    Text(
+                        "You are dead — respawn is automatic",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NeonRed,
+                    )
+                }
+            }
+        }
+
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             border = androidx.compose.foundation.BorderStroke(1.dp, NeonPink.copy(alpha = 0.5f)),
         ) {
-            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(target?.name ?: "No living target", style = MaterialTheme.typography.titleMedium)
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Target HP ${target?.hp ?: "?"}/${target?.maxHp ?: "?"} · ${target?.cell ?: "?"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DimWhite,
+                    target?.name ?: "No living target",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                ResourceBar(
+                    label = "HP",
+                    value = target?.hp,
+                    max = target?.maxHp,
+                    barColor = HpRed,
                 )
                 Text(
-                    "Your HP ${self?.hp ?: "?"}/${self?.maxHp ?: "?"}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    "Cell ${target?.cell ?: "?"} · ${className.ifBlank { "class unknown" }}",
+                    style = MaterialTheme.typography.bodySmall,
                     color = DimWhite,
                 )
             }
         }
+
         Text("Manual skills", style = MaterialTheme.typography.titleMedium, color = NeonCyan)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            (0..2).forEach { index -> ManualSkillButton(index, ui, vm, Modifier.weight(1f)) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (0..2).forEach { index ->
+                ManualSkillButton(index, ui, vm, skills, nowMs, Modifier.weight(1f))
+            }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            (3..5).forEach { index -> ManualSkillButton(index, ui, vm, Modifier.weight(1f)) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (3..5).forEach { index ->
+                ManualSkillButton(index, ui, vm, skills, nowMs, Modifier.weight(1f))
+            }
         }
         Text(
-            "A0 basic attack · A1–A4 class skills · A5 potion slot",
+            "A0 basic attack · A1–A4 class skills · A5 potion slot. " +
+                "Cooldowns follow the live class data.",
             style = MaterialTheme.typography.bodySmall,
             color = DimWhite,
         )
-        Spacer(Modifier.weight(1f))
         Text("Press Android Back to return", style = MaterialTheme.typography.bodySmall, color = DimWhite)
     }
 }
 
+/** Labelled resource bar used for player and monster HP/MP. */
 @Composable
-private fun ManualSkillButton(index: Int, ui: UiState, vm: AetheraQuestViewModel, modifier: Modifier = Modifier) {
-    val skills = ui.status.skills.ifEmpty { ui.skills }
-    val enabled = resolveAttackTarget(ui.status.area, ui.selectedMonsterId) != null &&
-        manualSkillEnabled(index, skills)
+private fun ResourceBar(label: String, value: Int?, max: Int?, barColor: Color) {
+    val fraction = barFraction(value, max)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = DimWhite)
+            Text(
+                "${value ?: "?"} / ${max ?: "?"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = PureWhite,
+            )
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(DarkPanel),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth(fraction)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(barColor),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ManualSkillButton(
+    index: Int,
+    ui: UiState,
+    vm: AetheraQuestViewModel,
+    skills: Map<String, SkillInfo>,
+    nowMs: Long,
+    modifier: Modifier = Modifier,
+) {
+    val hasTarget = resolveAttackTarget(ui.status.area, ui.selectedMonsterId) != null
+    val readiness = manualSkillReadiness(
+        index, skills, ui.skillReadyAt, nowMs, ui.status.area.self?.mp,
+    )
+    val enabled = hasTarget && readiness.enabled
+    val ref = manualSkillRef(index)
+    val skill = ref?.let(skills::get)
     Button(
         onClick = { vm.manualSkill(index) },
         enabled = enabled,
-        modifier = modifier.height(64.dp),
+        modifier = modifier.height(72.dp),
+        contentPadding = PaddingValues(4.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = NeonCyan,
             contentColor = SpaceNavy,
             disabledContainerColor = DarkPanel,
-            disabledContentColor = DimWhite.copy(alpha = 0.45f),
+            disabledContentColor = DimWhite.copy(alpha = 0.55f),
         ),
     ) {
-        Text("A$index", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("A$index", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            // Name and cost come straight from `sAct`; nothing is invented.
+            val subtitle = when {
+                !readiness.enabled && readiness.remainingMs > 0 -> cooldownLabel(readiness.remainingMs)
+                !readiness.enabled -> readiness.reason ?: ""
+                skill?.name?.isNotBlank() == true -> skill.name
+                else -> ""
+            }
+            if (subtitle.isNotBlank()) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+            }
+            if (skill != null && skill.manaCost > 0 && readiness.remainingMs <= 0L) {
+                Text(
+                    "${skill.manaCost} MP",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
