@@ -80,23 +80,46 @@ private val AetheraDark = darkColorScheme(
 )
 
 // ── Typography ────────────────────────────────────────────────────────────────
+//
+// No style sets `color`. A hardcoded colour inside a TextStyle wins over the
+// contentColor a component assigns, which made button labels render in the same
+// colour as their own container (cyan text on a cyan Login button, etc.).
+// Leaving colour Unspecified lets every component inherit LocalContentColor.
+
+internal object AetheraTypographyStyles {
+    val displayLarge  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 57.sp, letterSpacing = (-0.25).sp)
+    val displayMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 45.sp)
+    val displaySmall  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 36.sp)
+    val headlineLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 32.sp)
+    val headlineMedium= TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 28.sp)
+    val headlineSmall = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 24.sp)
+    val titleLarge    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 22.sp)
+    val titleMedium   = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, letterSpacing = 0.15.sp)
+    val titleSmall    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 14.sp, letterSpacing = 0.1.sp)
+    val bodyLarge     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,  fontSize = 16.sp, letterSpacing = 0.5.sp)
+    val bodyMedium    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,  fontSize = 14.sp, letterSpacing = 0.25.sp)
+    val bodySmall     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,  fontSize = 12.sp, letterSpacing = 0.4.sp)
+    val labelLarge    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 14.sp, letterSpacing = 0.1.sp)
+    val labelMedium   = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 12.sp, letterSpacing = 0.5.sp)
+    val labelSmall    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 11.sp, letterSpacing = 0.5.sp)
+}
 
 private val AetheraTypography = Typography(
-    displayLarge  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 57.sp, letterSpacing = (-0.25).sp, color = PureWhite),
-    displayMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 45.sp, color = PureWhite),
-    displaySmall  = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 36.sp, color = PureWhite),
-    headlineLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 32.sp, color = PureWhite),
-    headlineMedium= TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold,  fontSize = 28.sp, color = PureWhite),
-    headlineSmall = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, color = PureWhite),
-    titleLarge    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = PureWhite),
-    titleMedium   = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, letterSpacing = 0.15.sp, color = PureWhite),
-    titleSmall    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 14.sp, letterSpacing = 0.1.sp, color = PureWhite),
-    bodyLarge     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,  fontSize = 16.sp, letterSpacing = 0.5.sp, color = PureWhite),
-    bodyMedium    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,  fontSize = 14.sp, letterSpacing = 0.25.sp, color = PureWhite),
-    bodySmall     = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal,  fontSize = 12.sp, letterSpacing = 0.4.sp, color = DimWhite),
-    labelLarge    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 14.sp, letterSpacing = 0.1.sp, color = NeonCyan),
-    labelMedium   = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 12.sp, letterSpacing = 0.5.sp, color = DimWhite),
-    labelSmall    = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium,  fontSize = 11.sp, letterSpacing = 0.5.sp, color = DimWhite),
+    displayLarge   = AetheraTypographyStyles.displayLarge,
+    displayMedium  = AetheraTypographyStyles.displayMedium,
+    displaySmall   = AetheraTypographyStyles.displaySmall,
+    headlineLarge  = AetheraTypographyStyles.headlineLarge,
+    headlineMedium = AetheraTypographyStyles.headlineMedium,
+    headlineSmall  = AetheraTypographyStyles.headlineSmall,
+    titleLarge     = AetheraTypographyStyles.titleLarge,
+    titleMedium    = AetheraTypographyStyles.titleMedium,
+    titleSmall     = AetheraTypographyStyles.titleSmall,
+    bodyLarge      = AetheraTypographyStyles.bodyLarge,
+    bodyMedium     = AetheraTypographyStyles.bodyMedium,
+    bodySmall      = AetheraTypographyStyles.bodySmall,
+    labelLarge     = AetheraTypographyStyles.labelLarge,
+    labelMedium    = AetheraTypographyStyles.labelMedium,
+    labelSmall     = AetheraTypographyStyles.labelSmall,
 )
 
 // ── Theme entry point ─────────────────────────────────────────────────────────

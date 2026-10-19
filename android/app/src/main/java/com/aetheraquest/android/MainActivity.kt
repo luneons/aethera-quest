@@ -194,12 +194,11 @@ private fun LoginScreen(ui: UiState, vm: AetheraQuestViewModel) {
         )
         Text("Password is kept only in memory until login completes.", style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(4.dp))
-        Button(
+        PrimaryButtonWide(
+            text = "Login",
             onClick = vm::login,
             enabled = !ui.isLoading,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = SpaceNavy),
-        ) { Text("Login", fontWeight = FontWeight.Bold) }
+        )
     }
 }
 
@@ -208,7 +207,7 @@ private fun ServerScreen(ui: UiState, vm: AetheraQuestViewModel) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Choose server", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            TextButton(onClick = vm::loadServers) { Text("Refresh") }
+            TertiaryButton("Refresh", vm::loadServers)
         }
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ui.servers, key = { it.name }) { server ->
@@ -226,9 +225,11 @@ private fun ServerScreen(ui: UiState, vm: AetheraQuestViewModel) {
                 }
             }
         }
-        Button(onClick = vm::proceedToJoin, enabled = ui.selectedServer != null, modifier = Modifier.fillMaxWidth()) {
-            Text("Continue")
-        }
+        PrimaryButtonWide(
+            text = "Continue",
+            onClick = vm::proceedToJoin,
+            enabled = ui.selectedServer != null,
+        )
     }
 }
 
@@ -241,12 +242,8 @@ private fun JoinScreen(ui: UiState, vm: AetheraQuestViewModel) {
             singleLine = true,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = vm::goToMap, enabled = !ui.isLoading, modifier = Modifier.weight(1f)) {
-                Text("Visual mode")
-            }
-            OutlinedButton(onClick = vm::startHeadless, enabled = !ui.isLoading, modifier = Modifier.weight(1f)) {
-                Text("Headless mode")
-            }
+            PrimaryButton("Visual mode", vm::goToMap, Modifier.weight(1f), !ui.isLoading)
+            SecondaryButton("Headless mode", vm::startHeadless, Modifier.weight(1f), !ui.isLoading)
         }
         Text(
             "Headless keeps the AQW socket alive in a foreground service without rendering the map.",
@@ -276,7 +273,7 @@ private fun HeadlessScreen(ui: UiState, vm: AetheraQuestViewModel, onStop: () ->
         Spacer(Modifier.height(20.dp))
         Text("Rendering is off. The connection continues through the foreground service.")
         Spacer(Modifier.height(20.dp))
-        OutlinedButton(onClick = onStop) { Text("Stop headless") }
+        SecondaryButton("Stop headless", onStop)
     }
 }
 
@@ -379,17 +376,13 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                 // Auto attack replaces the old single-shot button: it keeps
                 // firing and interleaves the equipped class's own rotation.
                 val autoStyle = autoAttackButtonStyle(ui.autoAttacking)
-                Button(
+                AccentButton(
+                    text = if (ui.autoAttacking) "Auto ON" else "Auto",
                     onClick = vm::toggleAutoAttack,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = autoStyle.container,
-                        contentColor = autoStyle.content,
-                    ),
-                ) {
-                    Text(if (ui.autoAttacking) "Auto ON" else "Auto", fontWeight = FontWeight.Bold)
-                }
-                OutlinedButton(onClick = vm::toggleAfk) { Text(if (ui.status.afk) "AFK on" else "AFK off") }
-                OutlinedButton(onClick = vm::disconnect) { Text("Disconnect") }
+                    accentColor = autoStyle.container,
+                )
+                SecondaryButton(if (ui.status.afk) "AFK on" else "AFK off", vm::toggleAfk)
+                SecondaryButton("Disconnect", vm::disconnect)
             }
             // Class and rotation are shown so the user can see what the loop
             // decided to use instead of guessing why a skill never fired.
@@ -441,9 +434,7 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                         onChange = vm::walk,
                         onRelease = vm::stopWalking,
                     )
-                    TextButton(onClick = vm::toggleRunning) {
-                        Text(if (ui.running) "Speed: run" else "Speed: walk", style = MaterialTheme.typography.labelMedium)
-                    }
+                    TertiaryButton(if (ui.running) "Speed: run" else "Speed: walk", vm::toggleRunning)
                 }
             }
             RadarLegend()
@@ -473,22 +464,23 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 NumberField(x, { x = it }, "X", Modifier.weight(1f))
                 NumberField(y, { y = it }, "Y", Modifier.weight(1f))
-                Button(onClick = { vm.move(x.toIntOrNull() ?: 0, y.toIntOrNull() ?: 0) }) { Text("Move") }
+                PrimaryButton("Move", { vm.move(x.toIntOrNull() ?: 0, y.toIntOrNull() ?: 0) })
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(cell, { cell = it }, Modifier.weight(1f), label = { Text("Cell") }, singleLine = true)
                 OutlinedTextField(pad, { pad = it }, Modifier.weight(1f), label = { Text("Pad") }, singleLine = true)
-                Button(onClick = { vm.moveToCell(cell, pad) }) { Text("Go") }
+                PrimaryButton("Go", { vm.moveToCell(cell, pad) })
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     mapDraft, { mapDraft = it }, Modifier.weight(1f),
                     label = { Text("Switch map (e.g. yulgar-1234)") }, singleLine = true,
                 )
-                Button(
+                PrimaryButton(
+                    text = if (ui.status.transferring) "Moving…" else "Go map",
                     onClick = { vm.transferToMap(mapDraft); mapDraft = "" },
                     enabled = !ui.status.transferring && mapNameError(mapDraft) == null,
-                ) { Text(if (ui.status.transferring) "Moving…" else "Go map") }
+                )
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -522,7 +514,7 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(chatDraft, { chatDraft = it }, Modifier.weight(1f), label = { Text("Zone chat") }, singleLine = true)
-                Button(onClick = { vm.sendChat(chatDraft); chatDraft = "" }) { Text("Send") }
+                PrimaryButton("Send", { vm.sendChat(chatDraft); chatDraft = "" })
             }
         }
     }
