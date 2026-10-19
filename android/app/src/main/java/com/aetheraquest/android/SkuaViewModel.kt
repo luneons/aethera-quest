@@ -41,6 +41,8 @@ data class UiState(
     val skills: Map<String, SkillInfo> = emptyMap(),
     /** Whether an encrypted login is currently stored on this device. */
     val credentialsSaved: Boolean = false,
+    /** User choice exposed by the Remember login checkbox. */
+    val rememberCredentials: Boolean = false,
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -128,6 +130,12 @@ class AetheraQuestViewModel : ViewModel() {
     fun updateUsername(v: String) { _ui.value = _ui.value.copy(username = v) }
     fun updatePassword(v: String) { _ui.value = _ui.value.copy(password = v) }
     fun updateMapName(v: String) { _ui.value = _ui.value.copy(mapName = v) }
+    fun updateRememberCredentials(value: Boolean) {
+        _ui.value = _ui.value.copy(rememberCredentials = value)
+        // Turning it off means "do not remember me" immediately, including an
+        // account restored from a previous run.
+        if (!value && _ui.value.credentialsSaved) clearSavedCredentials()
+    }
 
     /**
      * Attach device-local encrypted storage and restore its login once.
@@ -136,35 +144,40 @@ class AetheraQuestViewModel : ViewModel() {
     fun attachCredentialStore(store: AndroidCredentialStore) {
         if (credentialStore != null) return
         credentialStore = store
-        _ui.value = restoreSavedCredentials(_ui.value, runCatching { store.load() }.getOrNull())
+        val restored = restoreSavedCredentials(_ui.value, runCatching { store.load() }.getOrNull())
+        _ui.value = restored.copy(rememberCredentials = restored.credentialsSaved)
     }
 
-    fun saveCredentials() {
-        val credentials = credentialsToSave(_ui.value.username, _ui.value.password)
+    private fun applyRememberChoice(username: String, password: String) {
         val store = credentialStore
-        if (credentials == null) {
-            _ui.value = _ui.value.copy(error = "Enter username and password first")
-            return
-        }
-        if (store == null) {
-            _ui.value = _ui.value.copy(error = "Secure storage is not ready")
-            return
-        }
-        runCatching { store.save(credentials) }
-            .onSuccess {
-                _ui.value = _ui.value.copy(
-                    username = credentials.username,
-                    credentialsSaved = true,
-                    error = null,
-                )
+        when (val action = loginCredentialAction(
+            remember = _ui.value.rememberCredentials,
+            username = username,
+            password = password,
+            currentlySaved = _ui.value.credentialsSaved,
+        )) {
+            is LoginCredentialAction.Save -> {
+                if (store != null && runCatching { store.save(action.credentials) }.isSuccess) {
+                    _ui.value = _ui.value.copy(credentialsSaved = true)
+                }
             }
-            .onFailure { _ui.value = _ui.value.copy(error = "Could not save login securely") }
+            LoginCredentialAction.Clear -> if (store != null && runCatching { store.clear() }.isSuccess) {
+                _ui.value = _ui.value.copy(credentialsSaved = false)
+            }
+            LoginCredentialAction.None -> Unit
+        }
     }
 
     fun clearSavedCredentials() {
         val store = credentialStore ?: return
         runCatching { store.clear() }
-            .onSuccess { _ui.value = _ui.value.copy(credentialsSaved = false, error = null) }
+            .onSuccess {
+                _ui.value = _ui.value.copy(
+                    credentialsSaved = false,
+                    rememberCredentials = false,
+                    error = null,
+                )
+            }
             .onFailure { _ui.value = _ui.value.copy(error = "Could not remove saved login") }
     }
 
@@ -194,6 +207,7 @@ class AetheraQuestViewModel : ViewModel() {
             _ui.value = _ui.value.copy(isLoading = true, error = null)
             try {
                 loginToken = AqwApi.login(u.username.trim(), u.password)
+                applyRememberChoice(u.username, u.password)
                 val list = AqwApi.servers().filter { it.online && !it.upgradeOnly }
                 _ui.value = _ui.value.copy(screen = Screen.SERVER, servers = list)
             } catch (e: Exception) {

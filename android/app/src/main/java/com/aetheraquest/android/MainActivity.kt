@@ -197,26 +197,18 @@ private fun LoginScreen(ui: UiState, vm: AetheraQuestViewModel) {
             singleLine = true, visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
-        Text(
-            if (ui.credentialsSaved) "Login saved on this device (encrypted)."
-            else "Login is not saved yet.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton(
-                text = if (ui.credentialsSaved) "Update saved login" else "Save login",
-                onClick = vm::saveCredentials,
-                modifier = Modifier.weight(1f),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = ui.rememberCredentials,
+                onCheckedChange = vm::updateRememberCredentials,
                 enabled = !ui.isLoading,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = NeonCyan,
+                    checkmarkColor = SpaceNavy,
+                    uncheckedColor = NeonCyan,
+                ),
             )
-            if (ui.credentialsSaved) {
-                SecondaryButton(
-                    text = "Forget",
-                    onClick = vm::clearSavedCredentials,
-                    modifier = Modifier.weight(1f),
-                    enabled = !ui.isLoading,
-                )
-            }
+            Text("Save username & password", style = MaterialTheme.typography.bodyMedium)
         }
         Spacer(Modifier.height(4.dp))
         PrimaryButtonWide(

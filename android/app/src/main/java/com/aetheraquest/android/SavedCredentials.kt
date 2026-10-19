@@ -17,3 +17,30 @@ internal fun restoreSavedCredentials(state: UiState, saved: SavedCredentials?): 
         password = saved.password,
         credentialsSaved = true,
     )
+
+/** What the "remember me" checkbox implies for stored credentials. */
+internal sealed interface LoginCredentialAction {
+    data class Save(val credentials: SavedCredentials) : LoginCredentialAction
+    data object Clear : LoginCredentialAction
+    data object None : LoginCredentialAction
+}
+
+/**
+ * Decides the storage side-effect of the remember-me checkbox.
+ *
+ * The checkbox is the only control: checking it stores the typed login, and
+ * unchecking it removes the stored one. Validation reuses `credentialsToSave`,
+ * so a blank field can never overwrite an existing saved login with nothing.
+ */
+internal fun loginCredentialAction(
+    remember: Boolean,
+    username: String,
+    password: String,
+    currentlySaved: Boolean,
+): LoginCredentialAction = when {
+    remember -> credentialsToSave(username, password)
+        ?.let { LoginCredentialAction.Save(it) }
+        ?: LoginCredentialAction.None
+    currentlySaved -> LoginCredentialAction.Clear
+    else -> LoginCredentialAction.None
+}

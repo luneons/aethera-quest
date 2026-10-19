@@ -32,4 +32,25 @@ class SavedCredentialsTest {
         val state = UiState(username = "typed-user", password = "typed-value")
         assertEquals(state, restoreSavedCredentials(state, null))
     }
+
+    @Test fun `remember checked saves current fields when login starts`() {
+        assertEquals(
+            LoginCredentialAction.Save(SavedCredentials("demo-user", "sample-value")),
+            loginCredentialAction(true, " demo-user ", "sample-value", currentlySaved = false),
+        )
+    }
+
+    @Test fun `remember unchecked removes an existing saved login`() {
+        assertEquals(
+            LoginCredentialAction.Clear,
+            loginCredentialAction(false, "demo-user", "sample-value", currentlySaved = true),
+        )
+    }
+
+    @Test fun `remember unchecked does nothing when no login is saved`() {
+        assertEquals(
+            LoginCredentialAction.None,
+            loginCredentialAction(false, "demo-user", "sample-value", currentlySaved = false),
+        )
+    }
 }
