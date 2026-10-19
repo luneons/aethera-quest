@@ -6,7 +6,7 @@ import zlib
 
 import pytest
 
-from skua_lite.map_cells import MapCellScanner, SWFCellError, parse_swf_cells
+from aethera_quest.map_cells import MapCellScanner, SWFCellError, parse_swf_cells
 
 
 def _tag(code: int, payload: bytes = b"") -> bytes:

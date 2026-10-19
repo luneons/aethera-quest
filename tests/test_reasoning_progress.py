@@ -1,4 +1,4 @@
-from skua_lite.reasoning_engine import FailureKind, diagnose_failure
+from aethera_quest.reasoning_engine import FailureKind, diagnose_failure
 
 
 def test_turn_in_missing_quest_progress_is_item_progress():

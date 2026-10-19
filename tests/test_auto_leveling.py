@@ -5,9 +5,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite import bot as bot_module, cli
-from skua_lite.farming import FarmingRuntime
-from skua_lite.servers import Server
+from aethera_quest import bot as bot_module, cli
+from aethera_quest.farming import FarmingRuntime
+from aethera_quest.servers import Server
 
 
 def _bot():
@@ -119,9 +119,9 @@ def test_auto_level_command_wires_to_farming_runtime(capsys):
 def test_orchestrator_connect_propagates_login_level_to_bot(monkeypatch, tmp_path):
     """Level from the HTTP login must reach the bot — the leveling spot
     table reads ``bot.level``, so a dropped level pins the bot at level 1."""
-    from skua_lite import bot as bot_mod, runner
-    from skua_lite.mode import RunMode
-    from skua_lite import credentials
+    from aethera_quest import bot as bot_mod, runner
+    from aethera_quest.mode import RunMode
+    from aethera_quest import credentials
 
     captured: dict = {}
 
@@ -220,6 +220,21 @@ def test_runtime_room_match_requires_requested_public_or_private_scope():
     assert not FarmingRuntime._room_matches("oaklore-100000", "oaklore", private=False)
     assert FarmingRuntime._room_matches("oaklore-100000", "oaklore", private=True)
     assert not FarmingRuntime._room_matches("oaklore", "oaklore", private=True)
+
+
+def test_runtime_room_match_accepts_server_assigned_private_instance():
+    """Private join di map instanced: server memberi room 5-6 digit, bukan -100000.
+
+    Live evidence (Yorumi, sevencircles private join): server menjawab
+    `sevencircles-90413`, `sevencircles-93385`, dst. Kalau room seperti itu
+    dianggap bukan private, room guard akan rejoin tiap 3 detik dan combat
+    tidak pernah selesai.
+    """
+    assert FarmingRuntime._room_matches("sevencircles-90413", "sevencircles", private=True)
+    assert FarmingRuntime._room_matches("sevencircles-96954", "sevencircles-100000", private=True)
+    assert FarmingRuntime._room_matches("sevencircleswar-100000", "sevencircleswar", private=True)
+    # Instance privat bukan room publik.
+    assert not FarmingRuntime._room_matches("sevencircles-90413", "sevencircles", private=False)
 
 
 def test_runtime_join_sends_selected_public_or_private_room():
@@ -379,12 +394,12 @@ def test_start_leveling_does_not_join_before_background_loop():
 
 def test_leveling_loop_survives_join_bot_error(monkeypatch):
     import threading
-    from skua_lite.bot import BotError
+    from aethera_quest.bot import BotError
     
     bot = _bot()
     bot.level = 22
     bot.current_map = "battleon-1"
-    from skua_lite.bot import BotState
+    from aethera_quest.bot import BotState
     bot.state = BotState.IN_MAP  # pastikan tidak stuck di guard JOINING_MAP
     runtime = FarmingRuntime(bot=bot)
     

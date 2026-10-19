@@ -13,7 +13,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite import combat, sfs
+from aethera_quest import combat, sfs
 
 
 def _json_packet(cmd: str, **fields) -> str:

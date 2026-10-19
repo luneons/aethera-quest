@@ -1,6 +1,6 @@
 """Test alur auto-recovery prerequisite Seven Circles sebelum masuk farming."""
-from skua_lite.quest_state import QuestState
-from skua_lite.scw import (
+from aethera_quest.quest_state import QuestState
+from aethera_quest.scw import (
     SCW_GATE_QUEST,
     SCW_XP_SPOT,
     SEVEN_CIRCLES_CHAIN,

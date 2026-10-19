@@ -9,8 +9,8 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from skua_lite import farming, sfs
-from skua_lite.inventory import ItemCatalog, OwnedItem
+from aethera_quest import farming, sfs
+from aethera_quest.inventory import ItemCatalog, OwnedItem
 
 
 # ---------------------------------------------------------------------------

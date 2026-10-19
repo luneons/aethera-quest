@@ -3,8 +3,8 @@ import time
 import threading
 from unittest.mock import Mock, call, patch
 
-from skua_lite import combat, sfs
-from skua_lite.combat import AutoAttackEngine, CombatState, generic_profile
+from aethera_quest import combat, sfs
+from aethera_quest.combat import AutoAttackEngine, CombatState, generic_profile
 
 
 def _death_pkt(username: str, hp: int = 0, state: int = 0) -> str:
@@ -114,7 +114,7 @@ def test_engine_returns_to_spot_cell_after_respawn():
 
 def test_leveling_loop_auto_respawns_on_death(monkeypatch):
     """Loop leveling tidak freeze saat karakter mati; bot auto respawn."""
-    import skua_lite.farming as farming
+    import aethera_quest.farming as farming
 
     bot = Mock(level=8, current_map="sevencircleswar-1", room_id=42, session_user_id=999)
     runtime = farming.FarmingRuntime(bot=bot)

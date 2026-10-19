@@ -2,7 +2,7 @@
 
 ## Summary
 
-skua-lite's combat engine (`combat.py`) uses `ClassProfile` objects to determine
+aethera-quest's combat engine (`combat.py`) uses `ClassProfile` objects to determine
 skill ordering.  Today only **one hand-authored file profile exists** (`mage.json`);
 all 262 other classes in the Skua `AdvancedSkills.json` catalog are unreachable
 and silently fall through to `generic_profile()`, which always returns the same
@@ -88,13 +88,13 @@ calls `_adopt_equipped_profile()`, which calls `profile_for()`. Since only
 |----------|--------|
 | **skillId range** | 0–5. 0=auto-attack (aa), 1–4=a1–a4, 5=i1 (item slot; only Overworld Chronomancer uses it). |
 | **Mode names** | `Base` (241 classes), `Farm` (22), `Solo` (24), `Atk` (11), `Def` (14), `Supp` (3). |
-| **Rules** | Health/Mana/Aura/Wait conditionals per skill entry. skua-lite currently ignores rules (engine relies on live sAct unlocked/cooldown/mana checks). |
+| **Rules** | Health/Mana/Aura/Wait conditionals per skill entry. aethera-quest currently ignores rules (engine relies on live sAct unlocked/cooldown/mana checks). |
 | **Skill repetition** | Many classes repeat the same skillId in a sequence (e.g., Chrono Assassin: `[4,1,2,3,1,2,3,1,2,3,…]`). This encodes a *combo rotation*, not just priority order. |
 | **Aliases** | Not present in AdvancedSkills.json (Skua matches by exact class name from `sClassName`). |
 
 ### Mode name mismatch
 
-| skua-lite mode | Skua mode | Mapping needed |
+| aethera-quest mode | Skua mode | Mapping needed |
 |----------------|-----------|----------------|
 | `farm_fast` | `Farm` | casefold + alias |
 | `base` | `Base` | casefold |
@@ -115,7 +115,7 @@ This is wrong for many classes. Examples:
 - **Chaos Slayer Berserker** (Skua): `[3,1,2,4]` for Base, `[3,2,4]` for Farm.
 
 ### G3: Combo rotations are lost
-skua-lite's `skill_refs()` deduplicates: the list is iterated as a priority
+aethera-quest's `skill_refs()` deduplicates: the list is iterated as a priority
 order, not a repeating sequence. Skua's `[4,1,2,3,1,2,3,1,2,3,…]` pattern for
 Chrono classes cannot be represented as a priority set.
 
@@ -129,7 +129,7 @@ Skua profiles add Health %, Mana %, and Aura conditions that gate skill use.
 Without these, some profiles fire defensive skills unconditionally.
 
 ### G6: No runtime loading from AdvancedSkills.json
-The `profile_for()` function only reads `class_profiles/*.json` (skua-lite's
+The `profile_for()` function only reads `class_profiles/*.json` (aethera-quest's
 own schema). There is no code path that reads or converts the Skua JSON.
 
 ---
@@ -316,9 +316,9 @@ def test_skill_id_zero_maps_to_aa():
 | Item | Status |
 |------|--------|
 | **Combo sequences** (same skill repeated) | Lost on dedup. Could extend ClassProfile to support a `combo: list[str]` that the engine iterates as a round-robin cursor instead of priority scan. Not urgent: priority-scan with live sAct readiness handles most classes correctly. |
-| **Rule conditionals** (Health%, Mana%, Aura) | Not implementable until skua-lite tracks auras (requires `aura+`/`aura-` packet parsing, which is already in `_CAPTURE_COMMANDS` but not in `CombatState`). Skill ordering without rules is still a large improvement over generic_profile. |
+| **Rule conditionals** (Health%, Mana%, Aura) | Not implementable until aethera-quest tracks auras (requires `aura+`/`aura-` packet parsing, which is already in `_CAPTURE_COMMANDS` but not in `CombatState`). Skill ordering without rules is still a large improvement over generic_profile. |
 | **skillId 5 (i1 / item slot)** | Only 1 class uses it (Overworld Chronomancer). The ref mapping `5 → "i1"` is already handled by `skill_refs()`: `refs.append("aa" if index == 0 else f"a{index}")` produces `"a5"`, which isn't a valid slot. Needs a special case: `5 → "i1"`. |
-| **AdvancedSkills.json bundling** | Either ship a copy in the package (`src/skua_lite/AdvancedSkills.json`) or discover it at runtime from `%APPDATA%\Skua\`. Bundling is simpler and avoids a Skua installation dependency. |
+| **AdvancedSkills.json bundling** | Either ship a copy in the package (`src/aethera_quest/AdvancedSkills.json`) or discover it at runtime from `%APPDATA%\Skua\`. Bundling is simpler and avoids a Skua installation dependency. |
 | **File size** | 151 KB (263 classes). Acceptable for one-time load. |
 
 ---

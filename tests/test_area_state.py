@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import threading
 
-from skua_lite.area_state import AreaStateStore
+from aethera_quest.area_state import AreaStateStore
 
 
 def packet(cmd: str, room: int = 42, **fields) -> str:

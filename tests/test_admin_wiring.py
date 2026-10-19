@@ -4,8 +4,8 @@ from __future__ import annotations
 import time
 from unittest.mock import Mock
 
-from skua_lite import bot as bot_mod
-from skua_lite import credentials, login, runner, servers
+from aethera_quest import bot as bot_mod
+from aethera_quest import credentials, login, runner, servers
 from tests.test_client import MockSFSServer
 
 import pytest
@@ -41,10 +41,10 @@ def test_runner_wires_admin_mode_and_owner_bang_command(mock_server, tmp_path, m
             online=True, full=False, upgrade_only=False,
         )},
     )
-    monkeypatch.setenv("SKUA_AI_BASE_URL", "https://ai.example/v1")
-    monkeypatch.setenv("SKUA_AI_API_KEY", "test-key")
-    monkeypatch.setenv("SKUA_AI_MODEL", "test-model")
-    monkeypatch.setenv("SKUA_ADMIN_SHELL", "0")
+    monkeypatch.setenv("AETHERA_QUEST_AI_BASE_URL", "https://ai.example/v1")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "test-key")
+    monkeypatch.setenv("AETHERA_QUEST_AI_MODEL", "test-model")
+    monkeypatch.setenv("AETHERA_QUEST_ADMIN_SHELL", "0")
     monkeypatch.setattr(
         runner, "openai_chat_generator",
         lambda _cfg: (lambda _message: "jawaban santai"),
@@ -80,7 +80,7 @@ def test_runner_wires_admin_mode_and_owner_bang_command(mock_server, tmp_path, m
 
         def fake_search(query: str):
             seen["query"] = query
-            from skua_lite.agent_tools import ToolResult
+            from aethera_quest.agent_tools import ToolResult
             return ToolResult(True, f"hasil untuk {query}")
 
         router._admin_handler.tools.web_search = fake_search

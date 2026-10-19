@@ -9,11 +9,11 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite import farming, sfs
-from skua_lite.quest_state import QuestState
-from skua_lite.auto_planner import AutoGoal, AutoPlanner
-from skua_lite.combat import MonsterState
-from skua_lite.mode import RunMode
+from aethera_quest import farming, sfs
+from aethera_quest.quest_state import QuestState
+from aethera_quest.auto_planner import AutoGoal, AutoPlanner
+from aethera_quest.combat import MonsterState
+from aethera_quest.mode import RunMode
 from tests.test_client import MockSFSServer
 
 
@@ -187,7 +187,7 @@ def test_live_scw_accept_packet_marks_gate_available_and_requests_data():
 
 
 def test_scw_dependency_planner_uses_best_spot_only_after_gate():
-    from skua_lite.scw import SCWDependencyPlanner
+    from aethera_quest.scw import SCWDependencyPlanner
 
     quests = QuestState()
     planner = SCWDependencyPlanner(quests)
@@ -209,7 +209,7 @@ def test_scw_dependency_planner_uses_best_spot_only_after_gate():
 
 
 def test_scw_dependency_chain_orders_story_before_war():
-    from skua_lite.scw import SEVEN_CIRCLES_CHAIN
+    from aethera_quest.scw import SEVEN_CIRCLES_CHAIN
 
     ids = [step.quest_id for step in SEVEN_CIRCLES_CHAIN]
     assert ids[:10] == [7968, 7969, 7970, 7971, 7972, 7973, 7974, 7975, 7976, 7977]
@@ -220,7 +220,7 @@ def test_scw_dependency_chain_orders_story_before_war():
 def test_leveling_loop_probes_scw_gate_before_combat(monkeypatch):
     import threading
 
-    from skua_lite.bot import BotState
+    from aethera_quest.bot import BotState
     bot = Mock(level=8, current_map="sevencircleswar-100000", room_id=42, state=BotState.IN_MAP)
     runtime = farming.FarmingRuntime(bot=bot)
     state = Mock(cell="r9", map_file_name="sevencircleswar.swf")
@@ -261,7 +261,7 @@ def test_scw_rejected_probe_suspends_level_goal_for_story_prerequisite():
 
 
 def test_story_executor_runs_first_missing_quest_then_combat():
-    from skua_lite.scw import SCWStoryExecutor
+    from aethera_quest.scw import SCWStoryExecutor
 
     bot = Mock(level=8, room_id=42)
     runtime = farming.FarmingRuntime(bot=bot)
@@ -279,7 +279,7 @@ def test_story_executor_runs_first_missing_quest_then_combat():
 
 
 def test_story_executor_fetches_map_item_for_map_item_quest():
-    from skua_lite.scw import QuestStep, SCWStoryExecutor
+    from aethera_quest.scw import QuestStep, SCWStoryExecutor
 
     bot = Mock(level=8, room_id=7)
     runtime = farming.FarmingRuntime(bot=bot)
@@ -294,7 +294,7 @@ def test_story_executor_fetches_map_item_for_map_item_quest():
 
 
 def test_story_executor_completes_only_finished_requirements():
-    from skua_lite.scw import SCWStoryExecutor
+    from aethera_quest.scw import SCWStoryExecutor
 
     bot = Mock(level=8, room_id=42)
     runtime = farming.FarmingRuntime(bot=bot)
@@ -312,7 +312,7 @@ def test_story_executor_completes_only_finished_requirements():
 def test_leveling_probe_promotes_to_scw_farm_after_gate_accepted(monkeypatch):
     import threading
 
-    from skua_lite.bot import BotState
+    from aethera_quest.bot import BotState
     bot = Mock(level=8, current_map="sevencircleswar-100000", room_id=42, state=BotState.IN_MAP)
     runtime = farming.FarmingRuntime(bot=bot)
     state = Mock(cell="r9", map_file_name="sevencircleswar.swf")
@@ -359,7 +359,7 @@ def test_scw_story_step_completes_before_returning_to_farm():
 def test_leveling_loop_retries_story_step_until_completion_then_advances(monkeypatch):
     import threading
 
-    from skua_lite.bot import BotState
+    from aethera_quest.bot import BotState
     bot = Mock(level=8, current_map="sevencircles-100000", room_id=42, state=BotState.IN_MAP)
     runtime = farming.FarmingRuntime(bot=bot)
     # Probe farming 7981 ditolak → story repair
@@ -391,8 +391,8 @@ def test_leveling_loop_retries_story_step_until_completion_then_advances(monkeyp
 
 
 def test_combat_worker_exits_cleanly_when_socket_dies():
-    from skua_lite.client import ConnectionFailed
-    from skua_lite.combat import AutoAttackEngine, CombatState, generic_profile
+    from aethera_quest.client import ConnectionFailed
+    from aethera_quest.combat import AutoAttackEngine, CombatState, generic_profile
 
     bot = Mock(room_id=42, session_user_id=1)
     bot._send_raw.side_effect = ConnectionFailed("socket belum terkoneksi (send)")
@@ -669,7 +669,7 @@ def test_farming_runtime_stop_stops_the_auto_goal():
 
 def test_combat_set_map_wide_does_not_spam_goal_log_if_unchanged():
     """set_map_wide(True) berulang kali tidak boleh spam log [GOAL] setiap tick."""
-    from skua_lite.combat import AutoAttackEngine, generic_profile
+    from aethera_quest.combat import AutoAttackEngine, generic_profile
 
     logs: list[str] = []
     bot = Mock(room_id=42, session_user_id=1)
@@ -686,7 +686,7 @@ def test_combat_set_map_wide_does_not_spam_goal_log_if_unchanged():
 
 def test_auto_pickup_drop_sends_get_drop_packet_when_enabled():
     """Saat server kirim dropItem, farming runtime otomatis kirim getDrop."""
-    from skua_lite import farming
+    from aethera_quest import farming
 
     sent: list[str] = []
     bot = Mock(room_id=273)
@@ -782,7 +782,7 @@ def test_farming_runtime_feeds_combat_and_captures_on_request(tmp_path):
 
 def test_farming_orchestrator_stays_active_and_joins_farm_map(mock_server, tmp_path, monkeypatch):
     """Farming mode: no AFK packet, no AI, and the farm map is the target."""
-    from skua_lite import bot as bot_mod, credentials, login, runner, servers
+    from aethera_quest import bot as bot_mod, credentials, login, runner, servers
 
     monkeypatch.setattr(
         login, "aqw_login",
@@ -796,9 +796,9 @@ def test_farming_orchestrator_stays_active_and_joins_farm_map(mock_server, tmp_p
         )},
     )
     # Even with AI configured, farming must not build the assistant stack.
-    monkeypatch.setenv("SKUA_AI_BASE_URL", "https://ai.example/v1")
-    monkeypatch.setenv("SKUA_AI_API_KEY", "test-key")
-    monkeypatch.setenv("SKUA_AI_MODEL", "test-model")
+    monkeypatch.setenv("AETHERA_QUEST_AI_BASE_URL", "https://ai.example/v1")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "test-key")
+    monkeypatch.setenv("AETHERA_QUEST_AI_MODEL", "test-model")
     monkeypatch.setattr(
         runner, "openai_chat_generator",
         lambda _cfg: pytest.fail("farming mode must not build an AI generator"),
@@ -837,7 +837,7 @@ def test_farming_orchestrator_stays_active_and_joins_farm_map(mock_server, tmp_p
 
 
 def test_farm_cli_accepts_dot_prefix_and_auto_attack():
-    from skua_lite import cli
+    from aethera_quest import cli
 
     assert cli.parse_farm_command(".status") == ("status", "")
     assert cli.parse_farm_command(".") == ("status", "")
@@ -919,7 +919,7 @@ def test_farm_cli_accepts_dot_prefix_and_auto_attack():
 
 
 def test_farming_control_accepts_goal_sentence_not_only_commands():
-    from skua_lite import cli
+    from aethera_quest import cli
 
     assert cli.parse_farm_command("lawan semua musuh yang ada di map ini") == (
         "goal", "clear_map"
@@ -997,7 +997,7 @@ def test_farming_area_report_uses_shared_generation_snapshot():
 
 
 def test_farming_cli_dispatches_area_human_and_json_reports(capsys):
-    from skua_lite import cli
+    from aethera_quest import cli
 
     assert cli.parse_farm_command(".area") == ("area", "")
     assert cli.parse_farm_command(".area json") == ("area", "json")
@@ -1018,7 +1018,7 @@ def test_farming_cli_dispatches_area_human_and_json_reports(capsys):
 
 
 def test_farming_runtime_scans_map_swf_cells_and_moves_between_them(tmp_path):
-    from skua_lite.map_cells import MapCellScanner
+    from aethera_quest.map_cells import MapCellScanner
 
     logs: list[str] = []
     scanned: list[str] = []
@@ -1073,7 +1073,7 @@ def test_farming_runtime_scans_map_swf_cells_and_moves_between_them(tmp_path):
 
 
 def test_farming_runtime_keeps_observed_cells_when_swf_scan_fails():
-    from skua_lite.map_cells import SWFCellError
+    from aethera_quest.map_cells import SWFCellError
 
     logs: list[str] = []
 
@@ -1109,7 +1109,7 @@ def test_farming_runtime_keeps_observed_cells_when_swf_scan_fails():
 
 
 def test_farming_map_swf_scan_runs_in_background_and_never_truncates(tmp_path):
-    from skua_lite.map_cells import MapCellScanner
+    from aethera_quest.map_cells import MapCellScanner
 
     release = threading.Event()
     entered = threading.Event()
@@ -1121,7 +1121,7 @@ def test_farming_map_swf_scan_runs_in_background_and_never_truncates(tmp_path):
         return _swf_bytes([*[f"Cell{i:03d}" for i in range(60)], "Enter"])
 
     def url_timeout(url):
-        from skua_lite.map_cells import DEFAULT_FETCH_TIMEOUT
+        from aethera_quest.map_cells import DEFAULT_FETCH_TIMEOUT
         return DEFAULT_FETCH_TIMEOUT
 
     bot = Mock(room_id=42, session_user_id=29185, username="alice")
@@ -1166,7 +1166,7 @@ def rows_in_observed_order(report: list[str]) -> bool:
 
 
 def test_farm_cli_parses_combat_capture_and_dispatches_commands():
-    from skua_lite import cli
+    from aethera_quest import cli
 
     assert cli.parse_farm_command("farm status") == ("status", "")
     assert cli.parse_farm_command("farm") == ("status", "")
@@ -1224,7 +1224,7 @@ def test_farm_cli_parses_combat_capture_and_dispatches_commands():
 
 def test_farming_orchestrator_connect_skips_ai_and_afk(monkeypatch):
     """connect() in farming mode never builds the assistant stack."""
-    from skua_lite import runner
+    from aethera_quest import runner
 
     monkeypatch.setattr(runner.AIConfig, "from_env", lambda: Mock(configured=True))
     monkeypatch.setattr(
@@ -1272,7 +1272,7 @@ def test_farming_orchestrator_connect_skips_ai_and_afk(monkeypatch):
 
 def test_room_matches_detects_scope_mismatch_correctly():
     """_room_matches harus mendeteksi bahwa publik != private meski base map sama."""
-    from skua_lite.farming import FarmingRuntime, FarmProfile
+    from aethera_quest.farming import FarmingRuntime, FarmProfile
     from unittest.mock import Mock
 
     bot = Mock()
@@ -1292,10 +1292,30 @@ def test_room_matches_detects_scope_mismatch_correctly():
     assert not runtime._room_matches("battleon-1", "sevencircleswar", private=False)
 
 
+def test_room_guard_accepts_server_assigned_private_instance():
+    """Bot di instance privat (bukan -100000) bukan wrong room: jangan rejoin."""
+    from aethera_quest.farming import FarmingRuntime, FarmProfile
+    from aethera_quest.bot import BotState
+    from unittest.mock import Mock
+
+    bot = Mock()
+    bot.state = BotState.IN_MAP
+    bot.current_map = "sevencircles-90413"  # instance privat pemberian server
+    bot.room_id = 148158
+    rejoins: list[str] = []
+    bot.join_map = Mock(side_effect=lambda m: rejoins.append(m))
+
+    runtime = FarmingRuntime(bot, FarmProfile())
+    runtime.set_target_room("sevencircles", private=True)
+
+    assert runtime.check_room_enforcement() is False
+    assert rejoins == []
+
+
 def test_runtime_auto_rejoins_target_room_on_unexpected_area_move():
     """Jika server melempar bot ke map/room lain, runtime auto-rejoin ke target."""
-    from skua_lite.farming import FarmingRuntime, FarmProfile
-    from skua_lite.bot import BotState
+    from aethera_quest.farming import FarmingRuntime, FarmProfile
+    from aethera_quest.bot import BotState
     from unittest.mock import Mock
 
     bot = Mock()
@@ -1317,8 +1337,8 @@ def test_runtime_auto_rejoins_target_room_on_unexpected_area_move():
 def test_feed_packet_moveToArea_triggers_room_guard_rejoin(monkeypatch):
     """Saat server mengirim moveToArea ke wrong room, feed_packet memicu auto-rejoin."""
     import time
-    from skua_lite.farming import FarmingRuntime, FarmProfile
-    from skua_lite.bot import BotState
+    from aethera_quest.farming import FarmingRuntime, FarmProfile
+    from aethera_quest.bot import BotState
     from unittest.mock import Mock
 
     bot = Mock()

@@ -5,9 +5,9 @@ import threading
 import time
 from unittest.mock import Mock
 
-from skua_lite.admin_commands import AdminActions, AdminCommandHandler, AdminInbox
-from skua_lite.agent_tools import AgentTools, ToolResult
-from skua_lite.ai_router import AIChatRouter
+from aethera_quest.admin_commands import AdminActions, AdminCommandHandler, AdminInbox
+from aethera_quest.agent_tools import AgentTools, ToolResult
+from aethera_quest.ai_router import AIChatRouter
 
 
 def _router(tmp_path, *, handler=None, generate=None, sent=None, **kwargs):

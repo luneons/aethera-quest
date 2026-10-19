@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-from skua_lite.ai_router import (
+from aethera_quest.ai_router import (
     AIChatRouter,
     AIConfig,
     _safe_non_owner_reply,
@@ -62,7 +62,7 @@ def test_safe_reply_strips_internal_marker_for_non_owner_path():
 
 
 def test_ultra_guide_loader_finds_and_summarizes_darkon():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     assert guide.boss_names
@@ -74,7 +74,7 @@ def test_ultra_guide_loader_finds_and_summarizes_darkon():
 
 
 def test_ultra_guide_loader_finds_and_summarizes_dage():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     dage = guide.section("ultradage")
@@ -88,7 +88,7 @@ def test_ultra_guide_loader_finds_and_summarizes_dage():
 
 
 def test_ultra_guide_discovers_all_markdown_files():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     assert len(guide.source_files) >= 6
@@ -97,7 +97,7 @@ def test_ultra_guide_discovers_all_markdown_files():
 
 
 def test_ultra_guide_retrieves_relevant_sections_for_mechanic_question():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     context = guide.context_for("noxious decay ultra dage gimana cara handle")
@@ -109,7 +109,7 @@ def test_ultra_guide_retrieves_relevant_sections_for_mechanic_question():
 
 
 def test_ultra_guide_finds_overfiend_blade_for_nulgath_question():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     context = guide.context_for("cara handle overfiend blade ultra nulgath")
@@ -119,7 +119,7 @@ def test_ultra_guide_finds_overfiend_blade_for_nulgath_question():
 
 
 def test_ultra_guide_no_match_for_unrelated_question():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     assert guide.context_for("link discord bro") == ""
@@ -243,7 +243,7 @@ def test_router_strips_md_source_filenames_from_chat_replies():
 
 
 def test_context_window_for_named_boss_includes_mechanic_and_setup(tmp_path):
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     base = tmp_path / "panduan"
     base.mkdir()
@@ -275,7 +275,7 @@ def test_context_window_for_named_boss_includes_mechanic_and_setup(tmp_path):
 
 
 def test_context_window_caps_total_prompt_size(tmp_path):
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     base = tmp_path / "panduan"
     base.mkdir()
@@ -296,7 +296,7 @@ def test_context_window_caps_total_prompt_size(tmp_path):
 
 
 def test_generic_ultra_question_gets_index_for_all_loaded_guides():
-    from skua_lite.ultra_guide import UltraGuide
+    from aethera_quest.ultra_guide import UltraGuide
 
     guide = UltraGuide.discover(Path(__file__).resolve().parents[1] / "panduan")
     context = guide.context_for("info ultra dong")
@@ -455,7 +455,7 @@ def test_room_log_is_not_attached_to_non_owner_replies():
 
 
 def test_owner_account_aliases_are_matched_exactly():
-    from skua_lite.ai_router import is_owner_account
+    from aethera_quest.ai_router import is_owner_account
 
     assert is_owner_account("ME LE")
     assert is_owner_account("mele")
@@ -629,7 +629,7 @@ def test_router_expands_abbreviations_found_in_ultra_guide_context():
 
 
 def test_agent_researches_once_then_sends_grounded_answer():
-    from skua_lite.research import ResearchResult
+    from aethera_quest.research import ResearchResult
 
     sent = []
     done = threading.Event()
@@ -664,7 +664,7 @@ def test_agent_researches_once_then_sends_grounded_answer():
 
 
 def test_agent_research_failure_does_not_leak_internal_marker():
-    from skua_lite.research import ResearchResult
+    from aethera_quest.research import ResearchResult
 
     sent = []
     done = threading.Event()
@@ -697,7 +697,7 @@ def test_agent_research_failure_does_not_leak_internal_marker():
 
 
 def test_agent_does_not_research_twice_when_second_answer_requests_it_again():
-    from skua_lite.research import ResearchResult
+    from aethera_quest.research import ResearchResult
 
     sent = []
     done = threading.Event()
@@ -813,9 +813,9 @@ def test_router_truncates_reply_to_150_characters():
 
 
 def test_ai_config_reads_endpoint_key_and_model_from_environment(monkeypatch):
-    monkeypatch.setenv("SKUA_AI_BASE_URL", "https://ai.example/v1")
-    monkeypatch.setenv("SKUA_AI_API_KEY", "test-key")
-    monkeypatch.setenv("SKUA_AI_MODEL", "test-model")
+    monkeypatch.setenv("AETHERA_QUEST_AI_BASE_URL", "https://ai.example/v1")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "test-key")
+    monkeypatch.setenv("AETHERA_QUEST_AI_MODEL", "test-model")
     cfg = AIConfig.from_env()
     assert cfg.base_url == "https://ai.example/v1"
     assert cfg.api_key == "test-key"
@@ -825,16 +825,16 @@ def test_ai_config_reads_endpoint_key_and_model_from_environment(monkeypatch):
 def test_ai_config_loads_dotenv_file_without_overriding_process_env(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "SKUA_AI_BASE_URL=https://file.example/v1\n"
-        "SKUA_AI_API_KEY=file-key\n"
-        "SKUA_AI_MODEL=file-model\n"
-        "SKUA_AI_TIMEOUT=9\n",
+        "AETHERA_QUEST_AI_BASE_URL=https://file.example/v1\n"
+        "AETHERA_QUEST_AI_API_KEY=file-key\n"
+        "AETHERA_QUEST_AI_MODEL=file-model\n"
+        "AETHERA_QUEST_AI_TIMEOUT=9\n",
         encoding="utf-8",
     )
-    monkeypatch.delenv("SKUA_AI_BASE_URL", raising=False)
-    monkeypatch.delenv("SKUA_AI_API_KEY", raising=False)
-    monkeypatch.setenv("SKUA_AI_MODEL", "process-model")
-    monkeypatch.delenv("SKUA_AI_TIMEOUT", raising=False)
+    monkeypatch.delenv("AETHERA_QUEST_AI_BASE_URL", raising=False)
+    monkeypatch.delenv("AETHERA_QUEST_AI_API_KEY", raising=False)
+    monkeypatch.setenv("AETHERA_QUEST_AI_MODEL", "process-model")
+    monkeypatch.delenv("AETHERA_QUEST_AI_TIMEOUT", raising=False)
 
     cfg = AIConfig.from_env(env_file)
 
@@ -914,11 +914,11 @@ def test_router_memory_survives_restart_and_reloads_from_disk(tmp_path):
 
 
 def test_ai_config_reads_max_tokens_and_longer_timeout_from_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("SKUA_AI_BASE_URL", "https://ai.example/v1")
-    monkeypatch.setenv("SKUA_AI_API_KEY", "k")
-    monkeypatch.setenv("SKUA_AI_MODEL", "m")
-    monkeypatch.delenv("SKUA_AI_TIMEOUT", raising=False)
-    monkeypatch.delenv("SKUA_AI_MAX_TOKENS", raising=False)
+    monkeypatch.setenv("AETHERA_QUEST_AI_BASE_URL", "https://ai.example/v1")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "k")
+    monkeypatch.setenv("AETHERA_QUEST_AI_MODEL", "m")
+    monkeypatch.delenv("AETHERA_QUEST_AI_TIMEOUT", raising=False)
+    monkeypatch.delenv("AETHERA_QUEST_AI_MAX_TOKENS", raising=False)
 
     cfg = AIConfig.from_env(tmp_path / "missing.env")
     # Longer default thinking time and a larger completion budget than the
@@ -929,7 +929,7 @@ def test_ai_config_reads_max_tokens_and_longer_timeout_from_env(monkeypatch, tmp
 
 def test_openai_generator_sends_configured_max_tokens(monkeypatch, tmp_path):
     import json
-    from skua_lite import ai_router
+    from aethera_quest import ai_router
 
     observed = {}
 
@@ -964,7 +964,7 @@ def test_openai_generator_sends_configured_max_tokens(monkeypatch, tmp_path):
 
 def test_openai_generator_posts_chat_completion_payload(monkeypatch):
     import json
-    from skua_lite.ai_router import openai_chat_generator
+    from aethera_quest.ai_router import openai_chat_generator
 
     observed = {}
 

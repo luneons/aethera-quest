@@ -1,5 +1,5 @@
 """Test framing/protokol SmartFox (verifikasi dari SmartFoxClient.as)."""
-from skua_lite import sfs
+from aethera_quest import sfs
 
 
 def test_packet_terminated_with_null_byte():

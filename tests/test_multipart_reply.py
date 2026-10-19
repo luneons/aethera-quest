@@ -5,14 +5,14 @@ import threading
 import time
 from unittest.mock import Mock
 
-from skua_lite.admin_commands import (
+from aethera_quest.admin_commands import (
     AdminCommandHandler,
     AdminInbox,
     split_chat_message,
 )
-from skua_lite.agent_tools import AgentTools
-from skua_lite.ai_router import AIChatRouter
-from skua_lite.wiki_knowledge import WikiKnowledge, build_wiki_database
+from aethera_quest.agent_tools import AgentTools
+from aethera_quest.ai_router import AIChatRouter
+from aethera_quest.wiki_knowledge import WikiKnowledge, build_wiki_database
 from tests.test_wiki_knowledge import _source_dir
 
 

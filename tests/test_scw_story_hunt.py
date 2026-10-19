@@ -1,7 +1,7 @@
 """Test story hunt: quest story tanpa cell spesifik harus memakai map-wide."""
 from unittest.mock import Mock
-from skua_lite.bot import BotState
-from skua_lite.farming import FarmingRuntime
+from aethera_quest.bot import BotState
+from aethera_quest.farming import FarmingRuntime
 
 
 def test_story_step_without_cell_uses_map_wide_hunt():
@@ -28,7 +28,7 @@ def test_story_step_without_cell_uses_map_wide_hunt():
 
     # Panggil satu iterasi logika combat dari _leveling_loop secara manual:
     # (duplikasi minimal dari branch combat story)
-    from skua_lite.scw import QuestStep
+    from aethera_quest.scw import QuestStep
     dependency = runtime.leveling_dependency
     assert dependency is not None
     assert dependency.quest_id == 7968
@@ -62,7 +62,7 @@ def test_named_hunt_destination_filters_other_monsters():
     engine.state.class_name = "Mage"
 
     # Bentuk monster state dari packet map live: Limbo di r2, Luxuria di r3
-    from skua_lite.combat import MonsterState
+    from aethera_quest.combat import MonsterState
     engine.state.monsters = {
         1: MonsterState(map_id=1, monster_id=100, name="Limbo Guard", hp=100, max_hp=100, state=1, cell="r2"),
         2: MonsterState(map_id=2, monster_id=100, name="Limbo Guard", hp=100, max_hp=100, state=1, cell="r2"),

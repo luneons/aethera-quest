@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock
 
-from skua_lite.admin_commands import (
+from aethera_quest.admin_commands import (
     AdminActions,
     AdminCommandHandler,
     AdminInbox,
@@ -15,7 +15,7 @@ from skua_lite.admin_commands import (
     resolve_room_target,
     split_private_flag,
 )
-from skua_lite.agent_tools import AgentTools, ToolResult
+from aethera_quest.agent_tools import AgentTools, ToolResult
 
 
 def _handler(tmp_path: Path, **kwargs) -> AdminCommandHandler:

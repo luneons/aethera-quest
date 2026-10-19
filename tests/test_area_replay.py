@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from skua_lite.area_replay import CaptureError, replay_capture
+from aethera_quest.area_replay import CaptureError, replay_capture
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "area" / "lair_synthetic"

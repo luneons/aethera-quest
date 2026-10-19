@@ -7,7 +7,7 @@ With a name → equip by exact name.
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from skua_lite import cli
+from aethera_quest import cli
 
 
 def _orch(runtime):

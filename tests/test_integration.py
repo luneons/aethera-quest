@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from skua_lite import bot as bot_mod
-from skua_lite import credentials, login, runner, servers
+from aethera_quest import bot as bot_mod
+from aethera_quest import credentials, login, runner, servers
 from tests.test_client import MockSFSServer
 
 
@@ -59,9 +59,9 @@ def test_orchestrator_full_flow(mock_server, tmp_path, monkeypatch):
             upgrade_only=False,
         )},
     )
-    monkeypatch.setenv("SKUA_AI_BASE_URL", "https://ai.example/v1")
-    monkeypatch.setenv("SKUA_AI_API_KEY", "test-key")
-    monkeypatch.setenv("SKUA_AI_MODEL", "test-model")
+    monkeypatch.setenv("AETHERA_QUEST_AI_BASE_URL", "https://ai.example/v1")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "test-key")
+    monkeypatch.setenv("AETHERA_QUEST_AI_MODEL", "test-model")
     monkeypatch.setattr(
         runner, "openai_chat_generator",
         lambda _cfg: (lambda _message: "jawaban santai"),

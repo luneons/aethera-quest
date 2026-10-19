@@ -1,4 +1,4 @@
-from skua_lite.aqw_knowledge import AQWKnowledge
+from aethera_quest.aqw_knowledge import AQWKnowledge
 
 
 def test_class_abbreviation_query_returns_full_name_and_role():

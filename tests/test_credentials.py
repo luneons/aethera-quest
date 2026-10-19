@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from skua_lite import credentials
+from aethera_quest import credentials
 
 
 @pytest.fixture

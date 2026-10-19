@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from skua_lite.agent_tools import AgentTools, ToolResult, is_allowed_command
+from aethera_quest.agent_tools import AgentTools, ToolResult, is_allowed_command
 
 
 class _Proc:
@@ -25,14 +25,14 @@ def _tools(tmp_path: Path, **kwargs) -> AgentTools:
 # child environment: secrets must not leak into tool subprocesses
 # --------------------------------------------------------------------------
 def test_child_env_drops_provider_secrets(tmp_path, monkeypatch):
-    monkeypatch.setenv("SKUA_AI_API_KEY", "super-secret")
-    monkeypatch.setenv("SKUA_AI_BASE_URL", "https://ai.example/v1")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "super-secret")
+    monkeypatch.setenv("AETHERA_QUEST_AI_BASE_URL", "https://ai.example/v1")
     monkeypatch.setenv("PATH", "/usr/bin")
 
     env = _tools(tmp_path)._child_env()
 
-    assert "SKUA_AI_API_KEY" not in env
-    assert "SKUA_AI_BASE_URL" not in env
+    assert "AETHERA_QUEST_AI_API_KEY" not in env
+    assert "AETHERA_QUEST_AI_BASE_URL" not in env
     assert env.get("PATH") == "/usr/bin"
 
 
@@ -198,10 +198,10 @@ def test_run_code_reports_traceback_as_failure(tmp_path):
 
 
 def test_run_code_cannot_see_provider_secret(tmp_path, monkeypatch):
-    monkeypatch.setenv("SKUA_AI_API_KEY", "super-secret")
+    monkeypatch.setenv("AETHERA_QUEST_AI_API_KEY", "super-secret")
     tools = _tools(tmp_path)
     result = tools.run_code(
-        "import os; print('LEAK' if os.getenv('SKUA_AI_API_KEY') else 'CLEAN')"
+        "import os; print('LEAK' if os.getenv('AETHERA_QUEST_AI_API_KEY') else 'CLEAN')"
     )
     assert result.ok is True
     assert "CLEAN" in result.summary

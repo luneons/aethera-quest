@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from skua_lite import login
+from aethera_quest import login
 
 
 class _Resp(io.BytesIO):
@@ -42,7 +42,7 @@ _NESTED_FAIL = '{"login": {"bSuccess": 0, "sMsg": "Wrong password"}}'
 
 
 def test_extracts_token_from_nested_login_object():
-    with patch("skua_lite.login.urllib.request.urlopen", return_value=_wrap(_NESTED_OK)):
+    with patch("aethera_quest.login.urllib.request.urlopen", return_value=_wrap(_NESTED_OK)):
         tok = login.aqw_login("Test User", "sekret")
     assert tok.success is True
     assert tok.token == "FAKE-SESSION-TOKEN"
@@ -52,7 +52,7 @@ def test_extracts_token_from_nested_login_object():
 
 
 def test_failure_message_taken_from_nested_login():
-    with patch("skua_lite.login.urllib.request.urlopen", return_value=_wrap(_NESTED_FAIL)):
+    with patch("aethera_quest.login.urllib.request.urlopen", return_value=_wrap(_NESTED_FAIL)):
         with pytest.raises(login.LoginFailed) as exc:
             login.aqw_login("alice", "wrong")
     assert "Wrong password" in str(exc.value)
@@ -60,7 +60,7 @@ def test_failure_message_taken_from_nested_login():
 
 def test_legacy_flat_shape_still_supported():
     body = '{"bSuccess":1,"sToken":"LEGACY","unm":"alice","sMsg":""}'
-    with patch("skua_lite.login.urllib.request.urlopen", return_value=_wrap(body)):
+    with patch("aethera_quest.login.urllib.request.urlopen", return_value=_wrap(body)):
         tok = login.aqw_login("alice", "pw")
     assert tok.token == "LEGACY"
     assert tok.username == "alice"
@@ -68,7 +68,7 @@ def test_legacy_flat_shape_still_supported():
 
 def test_legacy_failure_shape_works():
     body = '{"bSuccess":0,"sMsg":"legacy err"}'
-    with patch("skua_lite.login.urllib.request.urlopen", return_value=_wrap(body)):
+    with patch("aethera_quest.login.urllib.request.urlopen", return_value=_wrap(body)):
         with pytest.raises(login.LoginFailed) as exc:
             login.aqw_login("alice", "pw")
     assert "legacy err" in str(exc.value)

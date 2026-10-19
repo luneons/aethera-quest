@@ -5,11 +5,11 @@ import json
 import threading
 import time
 
-from skua_lite import cli
-from skua_lite.admin_commands import AdminCommandHandler
-from skua_lite.agent_tools import AgentTools
-from skua_lite.ai_router import AIChatRouter
-from skua_lite.wiki_knowledge import WikiKnowledge, build_wiki_database
+from aethera_quest import cli
+from aethera_quest.admin_commands import AdminCommandHandler
+from aethera_quest.agent_tools import AgentTools
+from aethera_quest.ai_router import AIChatRouter
+from aethera_quest.wiki_knowledge import WikiKnowledge, build_wiki_database
 from tests.test_wiki_knowledge import _source_dir
 
 
@@ -98,7 +98,7 @@ def test_router_skips_wiki_context_for_unrelated_chat(tmp_path):
 
 
 def test_public_wiki_command_works_for_non_owner_even_during_owner_lock(tmp_path):
-    from skua_lite.admin_commands import AdminCommandHandler
+    from aethera_quest.admin_commands import AdminCommandHandler
 
     db = tmp_path / "wiki.db"
     build_wiki_database(_source_dir(tmp_path), db)
@@ -204,6 +204,6 @@ def test_admin_resep_unknown_item_is_honest(tmp_path):
 
 
 def test_public_wiki_commands_include_resep():
-    from skua_lite.admin_commands import PUBLIC_WIKI_COMMANDS
+    from aethera_quest.admin_commands import PUBLIC_WIKI_COMMANDS
 
     assert {"dapat", "item", "quest", "shop", "resep"} <= PUBLIC_WIKI_COMMANDS

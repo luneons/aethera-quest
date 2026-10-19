@@ -7,7 +7,7 @@ marker parser, and cache-key extraction. Network fetches themselves are
 expected to be exercised only through the `scripts/research_agent.py` runner
 against a live endpoint — never asserted here.
 """
-from skua_lite import research
+from aethera_quest import research
 
 
 def test_find_stonecrusher_page_url_extracts_aqw_wiki_link():

@@ -6,9 +6,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite.mode import RunMode, parse_mode, select_mode
-from skua_lite import __main__ as main_mod
-from skua_lite import runner
+from aethera_quest.mode import RunMode, parse_mode, select_mode
+from aethera_quest import __main__ as main_mod
+from aethera_quest import runner
 
 
 def test_parse_mode_accepts_indonesian_names_and_shortcuts():
@@ -42,7 +42,7 @@ def test_select_mode_accepts_telegram_signal_without_terminal_input(monkeypatch)
     """Tombol Telegram harus bisa memilih mode tanpa menunggu Enter di terminal."""
     import threading
     import time
-    from skua_lite.mode import StartupSignal
+    from aethera_quest.mode import StartupSignal
 
     signal = StartupSignal()
     printed: list[str] = []
@@ -62,8 +62,8 @@ def test_prompt_farming_account_flow_accepts_telegram_signal():
     """Tombol akun di Telegram harus bisa memilih akun tanpa menunggu input terminal."""
     import threading
     import time
-    from skua_lite.mode import StartupSignal
-    from skua_lite.runner import prompt_farming_account_flow
+    from aethera_quest.mode import StartupSignal
+    from aethera_quest.runner import prompt_farming_account_flow
 
     class FakeStore:
         def list_usernames(self):

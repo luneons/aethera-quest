@@ -7,7 +7,7 @@ is deterministic in tests — no sleeps, no network.
 """
 import pytest
 
-from skua_lite.reconnect import ReconnectPolicy
+from aethera_quest.reconnect import ReconnectPolicy
 
 
 def test_first_retry_uses_base_delay():

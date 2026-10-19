@@ -1,8 +1,8 @@
-# RENCANA INDUK — Area Intelligence skua-lite
+# RENCANA INDUK — Area Intelligence aethera-quest
 
 Status: dokumen kerja (bukan klaim selesai).
-Ruang lingkup: menjadikan skua-lite bot headless yang **benar-benar mengenali area** sebelum menambah fitur permainan apa pun.
-Dasar: source client AQW (`World.as`, `Game.as`) + audit read-only Grimlite 1.3 + Skua 1.4.4 + kondisi kode skua-lite saat ini.
+Ruang lingkup: menjadikan aethera-quest bot headless yang **benar-benar mengenali area** sebelum menambah fitur permainan apa pun.
+Dasar: source client AQW (`World.as`, `Game.as`) + audit read-only Grimlite 1.3 + Skua 1.4.4 + kondisi kode aethera-quest saat ini.
 
 Aturan dokumen ini:
 
@@ -65,7 +65,7 @@ Catatan penting: **nama berkas map wajib dari server** (`strMapFileName`), dan c
 | `https://game.aq.com/game/gamefiles/maps/{FilePath}` | `Skua.Core/Scripts/ScriptMap.cs:320` |
 | `Map.FilePath = data.strMapFileName` | `Skua.Core/Scripts/ScriptInterface.cs:450` |
 
-Pencarian di pohon Grimlite untuk `gamefiles/maps` / `strMapFileName` menghasilkan 0 kecocokan. Jadi konvensi origin itu milik Skua; skua-lite mengadopsinya sebagai konfigurasi yang bisa diubah, bukan kebenaran tetap.
+Pencarian di pohon Grimlite untuk `gamefiles/maps` / `strMapFileName` menghasilkan 0 kecocokan. Jadi konvensi origin itu milik Skua; aethera-quest mengadopsinya sebagai konfigurasi yang bisa diubah, bukan kebenaran tetap.
 
 `[PERLU VERIFIKASI]` Perilaku CDN nyata (host, query versi, nama berkas dengan atau tanpa `.swf`) belum pernah direkam di repositori ini. Wajib direproduksi di Fase 0 dengan log bertanggal. Klaim "404 terbukti" pada revisi 1 **dicabut** karena tidak ada artefak bukti yang tersimpan.
 
@@ -99,14 +99,14 @@ Catatan: klaim "Grimlite membekukan jam sistem" **tidak ditemukan** di pohon 1.3
 
 **Yang tidak dipakai:** semua `Flash.Call` yang bergantung SWF modifikasi (infinite range, enemy magnet, provoke, cancel target, `SendClientPacket`, spoof level/gold/gender), plugin `LoadFile`, `AutoBuyBack`, dan daftar pad hardcode sebagai satu-satunya sumber.
 
-### 1.4 Kondisi skua-lite sekarang
+### 1.4 Kondisi aethera-quest sekarang
 
 | Bagian | Keadaan | Rujukan |
 |---|---|---|
-| Parser frame label: tag 43 + 86, FWS + CWS, cache `.map_cache/` | ada | `src/skua_lite/map_cells.py` |
+| Parser frame label: tag 43 + 86, FWS + CWS, cache `.map_cache/` | ada | `src/aethera_quest/map_cells.py` |
 | Cache gagal parse → pakai cache lama; error tulis ditelan | masalah | `map_cells.py:191-202` |
 | `known_cells()` / `known_pads()` / `move_to_cell()` + wire asli | ada | `combat.py:422`, `443`, `683` |
-| Daftar pad skua-lite 12 nama (8 Grimlite + 4 diagonal) | ekstensi, perlu didokumentasikan | `combat.py:29-32` |
+| Daftar pad aethera-quest 12 nama (8 Grimlite + 4 diagonal) | ekstensi, perlu didokumentasikan | `combat.py:29-32` |
 | Scan aset di thread terpisah | ada | `farming.py:92-125` |
 | Reducer state wire (AreaState) | **belum ada** | — |
 | State machine pergerakan | **belum ada** | — |
@@ -585,14 +585,14 @@ Alasan urutan ini: Fase 1 dan 2 bisa dikerjakan penuh tanpa bergantung pada kebe
 - `Skua.Core/Scripts/ScriptMap.cs:320` URL `gamefiles/maps/{FilePath}`
 - `Skua.Core/Scripts/ScriptInterface.cs:450` `FilePath = strMapFileName`
 
-**skua-lite:**
+**aethera-quest:**
 
-- `src/skua_lite/area_state.py` snapshot area dinamis, generation, provenance wire
-- `src/skua_lite/area_replay.py` replay fixture tersanitasi dan verifikasi snapshot
-- `src/skua_lite/map_cells.py` (tag 43/86, FWS/CWS, cache; bug di `191-202`)
-- `src/skua_lite/combat.py:29-32` daftar 12 pad
-- `src/skua_lite/combat.py:422,443,683` known_cells / known_pads / move_to_cell
-- `src/skua_lite/farming.py:92-125` scan aset thread terpisah
+- `src/aethera_quest/area_state.py` snapshot area dinamis, generation, provenance wire
+- `src/aethera_quest/area_replay.py` replay fixture tersanitasi dan verifikasi snapshot
+- `src/aethera_quest/map_cells.py` (tag 43/86, FWS/CWS, cache; bug di `191-202`)
+- `src/aethera_quest/combat.py:29-32` daftar 12 pad
+- `src/aethera_quest/combat.py:422,443,683` known_cells / known_pads / move_to_cell
+- `src/aethera_quest/farming.py:92-125` scan aset thread terpisah
 
 ## Lampiran B — Antarmuka perintah
 

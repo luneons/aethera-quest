@@ -1,7 +1,7 @@
 """Test parser & pemilih server AQW."""
 import pytest
 
-from skua_lite import servers
+from aethera_quest import servers
 
 _YORUMI_ONLINE = (
     '[{"sName":"Twilly","sIP":"sock7.aq.com","iCount":592,"iMax":1000,'

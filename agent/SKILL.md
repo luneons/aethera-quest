@@ -6,11 +6,11 @@ komponen riset di dalam bot (`research.Researcher` + `ai_router`).
 
 ## 1. Pre-conditions
 
-- `ResearchCache` sudah ada di `%LOCALAPPDATA%/skua-lite/research_cache/`.
+- `ResearchCache` sudah ada di `%LOCALAPPDATA%/aethera-quest/research_cache/`.
 - Folder `panduan/` berisi panduan lokal; bila kosong, sistem tetap jalan
   dengan jawaban seadanya.
-- `.env` minimal berisi `SKUA_AI_BASE_URL`, `SKUA_AI_API_KEY`,
-  `SKUA_AI_MODEL`. Bila kosong, bot OFFLINE tanpa AI.
+- `.env` minimal berisi `AETHERA_QUEST_AI_BASE_URL`, `AETHERA_QUEST_AI_API_KEY`,
+  `AETHERA_QUEST_AI_MODEL`. Bila kosong, bot OFFLINE tanpa AI.
 
 ## 2. Loop Riset (pseudo input minta detection)
 
@@ -53,7 +53,7 @@ komponen riset di dalam bot (`research.Researcher` + `ai_router`).
 
 - Unit test: `tests/test_research.py` (helper murni, tidak ada HTTP).
 - Integrasi: `tests/test_ai_router.py::test_agent_*` (mock Researcher).
-- Live probe: `python -m skua_lite.research "https://aqwwiki.wikidot.com/archpaladin | ArchPaladin class"`.
+- Live probe: `python -m aethera_quest.research "https://aqwwiki.wikidot.com/archpaladin | ArchPaladin class"`.
 
 ## 6. Pemeliharaan
 

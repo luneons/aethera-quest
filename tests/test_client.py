@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from skua_lite import client, sfs
+from aethera_quest import client, sfs
 
 
 class MockSFSServer:

@@ -5,9 +5,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite.farming import FarmingRuntime
-from skua_lite.quest_state import QuestState
-from skua_lite.reasoning_engine import FailureKind
+from aethera_quest.farming import FarmingRuntime
+from aethera_quest.quest_state import QuestState
+from aethera_quest.reasoning_engine import FailureKind
 
 
 class TestFarmingReasoningIntegration:

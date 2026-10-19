@@ -11,9 +11,9 @@ Evidence-grounded packet shapes:
 """
 from unittest.mock import Mock
 
-from skua_lite import bot as bot_mod
-from skua_lite.ai_router import AIChatRouter
-from skua_lite.servers import Server
+from aethera_quest import bot as bot_mod
+from aethera_quest.ai_router import AIChatRouter
+from aethera_quest.servers import Server
 
 
 def _follow_bot(router=None):

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from skua_lite.cli import parse_farm_command, dispatch_farm, parse_account_credentials
+from aethera_quest.cli import parse_farm_command, dispatch_farm, parse_account_credentials
 
 
 def test_parse_account_credentials_with_comma_separator():

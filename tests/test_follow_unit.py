@@ -1,5 +1,5 @@
 """Unit tests for follow command parsing and the OwnerFollower controller."""
-from skua_lite.follow import (
+from aethera_quest.follow import (
     OwnerFollower,
     normalize_command,
     parse_follow_command,

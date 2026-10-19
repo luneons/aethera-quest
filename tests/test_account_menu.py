@@ -50,7 +50,7 @@ def _store(accounts: dict[str, str]):
 # ---------------------------------------------------------------------------
 
 def _import():
-    from skua_lite.runner import prompt_farming_account_flow
+    from aethera_quest.runner import prompt_farming_account_flow
     return prompt_farming_account_flow
 
 

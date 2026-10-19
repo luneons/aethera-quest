@@ -1,8 +1,8 @@
 """Turn-in failure hooks for Seven Circles prerequisite recovery."""
 from unittest.mock import Mock
 
-from skua_lite.bot import BotState
-from skua_lite.farming import FarmingRuntime
+from aethera_quest.bot import BotState
+from aethera_quest.farming import FarmingRuntime
 
 
 def _runtime() -> FarmingRuntime:

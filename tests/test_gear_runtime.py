@@ -59,7 +59,7 @@ def test_equip_weapon_accepts_item_id_for_polearm():
 
 def test_equip_weapon_accepts_global_item_menu_number():
     """A number copied from `.item` remains usable in `.weapon`."""
-    from skua_lite.inventory import OwnedItem
+    from aethera_quest.inventory import OwnedItem
 
     sent = []
     rt = _runtime_with_items(sent)

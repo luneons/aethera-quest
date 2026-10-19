@@ -5,9 +5,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from skua_lite import bot, client, sfs
-from skua_lite.ai_router import AIChatRouter
-from skua_lite.servers import Server
+from aethera_quest import bot, client, sfs
+from aethera_quest.ai_router import AIChatRouter
+from aethera_quest.servers import Server
 from tests.test_client import MockSFSServer
 
 

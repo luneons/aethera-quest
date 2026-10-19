@@ -6,13 +6,13 @@ target map, and follow mode survive the lifecycle tear-down.
 from unittest.mock import Mock
 import pytest
 
-from skua_lite.bot import BotState, BotError
-from skua_lite.follow import OwnerFollower
-from skua_lite.mode import RunMode
-from skua_lite.runner import Orchestrator, ReloginWatcher
-from skua_lite.reconnect import ReconnectPolicy
-from skua_lite.farming import FarmingRuntime
-from skua_lite.auto_planner import AutoGoal
+from aethera_quest.bot import BotState, BotError
+from aethera_quest.follow import OwnerFollower
+from aethera_quest.mode import RunMode
+from aethera_quest.runner import Orchestrator, ReloginWatcher
+from aethera_quest.reconnect import ReconnectPolicy
+from aethera_quest.farming import FarmingRuntime
+from aethera_quest.auto_planner import AutoGoal
 
 
 def _mock_orch(mode=RunMode.FARMING):

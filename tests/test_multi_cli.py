@@ -18,8 +18,8 @@ def _make_orch(username: str) -> SimpleNamespace:
 
 
 def test_multi_farm_menu_loop_quit_stops_all_slots():
-    from skua_lite.cli import multi_farm_menu_loop
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.cli import multi_farm_menu_loop
+    from aethera_quest.multi_session import MultiOrchestrator
     from unittest.mock import Mock, patch
 
     orch1 = _make_orch("Hero1")
@@ -36,8 +36,8 @@ def test_multi_farm_menu_loop_quit_stops_all_slots():
 
 
 def test_multi_cli_broadcasts_farm_commands():
-    from skua_lite.cli import multi_farm_menu_loop
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.cli import multi_farm_menu_loop
+    from aethera_quest.multi_session import MultiOrchestrator
     from unittest.mock import patch
 
     orch1 = _make_orch("Hero1")

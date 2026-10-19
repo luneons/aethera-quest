@@ -1,4 +1,4 @@
-# AGENT.md — Single-file Operating Charter for skua-lite
+# AGENT.md — Single-file Operating Charter for aethera-quest
 
 > Digunakan oleh `Mele` (bot AQW) untuk menjawab pemain. Bukan dokumen
 > onboarding manusia melainkan ringkasan eksekusi: apa yang bot **wajib**
@@ -62,7 +62,7 @@ chat player ──► Gatekeeper ──► Reasoner (1)
 8. `!upgrade` wajib dua langkah: simpan tujuan, tunggu `!upgrade ok`, jalankan
    agent, lalu verifikasi pytest. Tidak boleh mengklaim sukses jika test gagal
    atau tidak ada file berubah.
-9. Child process tidak menerima `SKUA_AI_*` atau variabel secret umum.
+9. Child process tidak menerima `AETHERA_QUEST_AI_*` atau variabel secret umum.
    `!run` default mati dan hanya menerima allowlist perintah baca-saja.
 10. `FARMING` harus memiliki `ai_router is None`; paket chat tidak boleh
     menyalakan AI/Admin. Gunakan hanya builder SFS yang punya referensi Skua/AQW.
@@ -92,32 +92,32 @@ chat player ──► Gatekeeper ──► Reasoner (1)
 - `agent/README.md` — peta direktori + ringkasan arsitektur.
 - `agent/SKILL.md` — SOP loop riset + fallback + anti-pattern.
 - `agent/HEARTBEAT.md` — sinyal hidup + cek cepat + perintah darurat.
-- `src/skua_lite/research.py` — riset + cache + slug guessing.
-- `src/skua_lite/ai_router.py` — gatekeeper + reasoner + loop
+- `src/aethera_quest/research.py` — riset + cache + slug guessing.
+- `src/aethera_quest/ai_router.py` — gatekeeper + reasoner + loop
   `RESEARCH:` + gate Admin Mode.
-- `src/skua_lite/mode.py` — pilihan `AI ASISTEN` / `FARMING`.
-- `src/skua_lite/farming.py` — runtime farming headless (tanpa AI).
-- `src/skua_lite/bot.py` — koneksi/state + router chat/slash-command. Input
+- `src/aethera_quest/mode.py` — pilihan `AI ASISTEN` / `FARMING`.
+- `src/aethera_quest/farming.py` — runtime farming headless (tanpa AI).
+- `src/aethera_quest/bot.py` — koneksi/state + router chat/slash-command. Input
   `.chat /...` tidak pernah menjadi chat publik: `/join` memakai `cmd/tfer`,
   `/goto` memakai `cmd/goto`, dan command generik memakai envelope `cmd` room 1.
-- `src/skua_lite/combat.py` — state combat + engine auto-attack `gar` + scan
+- `src/aethera_quest/combat.py` — state combat + engine auto-attack `gar` + scan
   cell server/observed + `moveToCell` wire asli.
-- `src/skua_lite/map_cells.py` — scan label frame SWF map (tag 43/86, FWS/CWS)
+- `src/aethera_quest/map_cells.py` — scan label frame SWF map (tag 43/86, FWS/CWS)
   untuk daftar cell lengkap; cache di `.map_cache/`, gagal -> parsial.
-- `src/skua_lite/class_profiles/*.json` — rotasi per class (awal: Mage).
-- `src/skua_lite/admin_commands.py` — parser/dispatcher perintah `!` pemilik.
-- `src/skua_lite/agent_tools.py` — tool nyata dan bukti verifikasi.
+- `src/aethera_quest/class_profiles/*.json` — rotasi per class (awal: Mage).
+- `src/aethera_quest/admin_commands.py` — parser/dispatcher perintah `!` pemilik.
+- `src/aethera_quest/agent_tools.py` — tool nyata dan bukti verifikasi.
 - `panduan/**/*.md` — pengetahuan Ultra Boss offline.
 
 ## 6. Perintah Darurat
 
 ```powershell
 # Lihat status AI gateway (tanpa bocorkan secret).
-python -c "from skua_lite.ai_router import AIConfig; cfg = AIConfig.from_env(); print('configured=', cfg.configured)"
+python -c "from aethera_quest.ai_router import AIConfig; cfg = AIConfig.from_env(); print('configured=', cfg.configured)"
 
 # Probe riset cepat (tidak menulis cache).
-python -m skua_lite.research "https://aqwwiki.wikidot.com/archpaladin | ArchPaladin class"
+python -m aethera_quest.research "https://aqwwiki.wikidot.com/archpaladin | ArchPaladin class"
 
 # Bersihkan cache riset bila korup.
-Remove-Item -Recurse "$env:LOCALAPPDATA\skua-lite\research_cache"
+Remove-Item -Recurse "$env:LOCALAPPDATA\aethera-quest\research_cache"
 ```

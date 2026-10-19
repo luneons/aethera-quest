@@ -9,21 +9,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_linux_launcher_bootstraps_venv_and_forwards_arguments():
-    text = (ROOT / "JALANKAN_SKUA_LITE.sh").read_text(encoding="utf-8")
+    text = (ROOT / "JALANKAN_AETHERA_QUEST.sh").read_text(encoding="utf-8")
 
     assert '#!/usr/bin/env bash' in text
     assert 'python3' in text
     assert 'python -m venv' in text or '"$PYTHON_BIN" -m venv' in text
     assert 'pip install' in text
-    assert 'python -m skua_lite' in text or '-m skua_lite' in text
+    assert 'python -m aethera_quest' in text or '-m aethera_quest' in text
     assert '"$@"' in text
 
 
 def test_macos_command_launcher_delegates_to_shared_unix_launcher():
-    text = (ROOT / "JALANKAN_SKUA_LITE.command").read_text(encoding="utf-8")
+    text = (ROOT / "JALANKAN_AETHERA_QUEST.command").read_text(encoding="utf-8")
 
     assert '#!/usr/bin/env bash' in text
-    assert 'JALANKAN_SKUA_LITE.sh' in text
+    assert 'JALANKAN_AETHERA_QUEST.sh' in text
     assert '"$@"' in text
 
 
@@ -32,7 +32,7 @@ def test_unix_launchers_have_valid_bash_syntax():
         # This Windows runner exposes WSL's bash shim but has no WSL distro.
         # Linux/macOS CI executes the real syntax check below.
         return
-    for name in ("JALANKAN_SKUA_LITE.sh", "JALANKAN_SKUA_LITE.command"):
+    for name in ("JALANKAN_AETHERA_QUEST.sh", "JALANKAN_AETHERA_QUEST.command"):
         result = subprocess.run(
             ["bash", "-n", str(ROOT / name)],
             capture_output=True,
@@ -47,5 +47,5 @@ def test_unix_launchers_are_executable():
         # Git records this bit for macOS/Linux; Windows cannot represent it in
         # NTFS mode bits reliably, so the index is verified separately in CI.
         return
-    for name in ("JALANKAN_SKUA_LITE.sh", "JALANKAN_SKUA_LITE.command"):
+    for name in ("JALANKAN_AETHERA_QUEST.sh", "JALANKAN_AETHERA_QUEST.command"):
         assert os.access(ROOT / name, os.X_OK)

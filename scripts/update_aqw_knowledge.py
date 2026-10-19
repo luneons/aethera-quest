@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from skua_lite.wiki_knowledge import SOURCE_REPO, build_wiki_database, default_wiki_db_path
+from aethera_quest.wiki_knowledge import SOURCE_REPO, build_wiki_database, default_wiki_db_path
 
 
 def _detect_commit(source_dir: Path) -> str:

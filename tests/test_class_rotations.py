@@ -2,14 +2,14 @@
 
 The bot must fire the skills of the class it is actually wearing, not a Mage
 rotation for everything. Skua ships the real per-class orders; this module
-converts that file into the compact shape skua-lite already understands and
+converts that file into the compact shape aethera-quest already understands and
 falls back to the bundled snapshot when the Skua install is absent.
 """
 import json
 
 import pytest
 
-from skua_lite import class_rotations, combat
+from aethera_quest import class_rotations, combat
 
 
 def _raw(**classes):

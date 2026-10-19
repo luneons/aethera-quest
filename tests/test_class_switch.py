@@ -6,7 +6,7 @@ command the server already emits instead of guessing a new one.
 """
 import json
 
-from skua_lite import combat, sfs
+from aethera_quest import combat, sfs
 
 
 def _json(cmd: str, **fields) -> str:
@@ -210,7 +210,7 @@ def _fake_bot(sent: list[str], room_id: int = 42, uid: int = 29185):
 
 
 def _runtime(sent: list[str]):
-    from skua_lite import farming
+    from aethera_quest import farming
     bot = _fake_bot(sent)
     runtime = farming.FarmingRuntime(bot=bot, profile=farming.FarmProfile())
     return runtime, bot
@@ -320,7 +320,7 @@ def test_runtime_attacks_with_live_skills_of_a_non_mage_class():
 # CLI wiring
 # ---------------------------------------------------------------------------
 def test_class_command_parses_scan_list_and_use():
-    from skua_lite import cli
+    from aethera_quest import cli
 
     assert cli.parse_farm_command(".class scan") == ("class", "scan")
     assert cli.parse_farm_command(".class list") == ("class", "list")
@@ -330,7 +330,7 @@ def test_class_command_parses_scan_list_and_use():
 def test_dispatch_class_scan_lists_choices(capsys):
     from types import SimpleNamespace
     from unittest.mock import Mock
-    from skua_lite import cli
+    from aethera_quest import cli
 
     runtime = Mock()
     runtime.scan_classes.return_value = [
@@ -349,7 +349,7 @@ def test_dispatch_class_scan_lists_choices(capsys):
 def test_dispatch_class_use_keeps_names_with_spaces(capsys):
     from types import SimpleNamespace
     from unittest.mock import Mock
-    from skua_lite import cli
+    from aethera_quest import cli
 
     runtime = Mock()
     runtime.select_class.return_value = "equip Echo Shaman dari bank"

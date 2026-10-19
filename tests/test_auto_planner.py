@@ -1,7 +1,7 @@
 """Unit test loop planning / auto goals."""
 from unittest.mock import Mock
 
-from skua_lite.auto_planner import AutoPlanner, AutoGoal, AutoGoalParser
+from aethera_quest.auto_planner import AutoPlanner, AutoGoal, AutoGoalParser
 
 
 def test_auto_planner_executes_goal_and_reports_status():

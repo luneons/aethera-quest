@@ -1,8 +1,8 @@
 """Auto goal integration via owner chat."""
 from unittest.mock import Mock
 
-from skua_lite.bot import BotState
-from skua_lite.auto_planner import AutoPlanner
+from aethera_quest.bot import BotState
+from aethera_quest.auto_planner import AutoPlanner
 from tests.test_follow import _follow_bot
 
 

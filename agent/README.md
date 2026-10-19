@@ -1,7 +1,7 @@
-# `agent/` — Operating Charter for skua-lite
+# `agent/` — Operating Charter for aethera-quest
 
 > Dokumen ini menjelaskan bagaimana komponen AI + riset otomatis di
-> `skua-lite` saling beroperasi. Tujuan: satu helah “terselesaikan” saat
+> `aethera-quest` saling beroperasi. Tujuan: satu helah “terselesaikan” saat
 > seorang instruktur bertanya di AQW dan jawaban offline belum ada.
 
 ## Struktur
@@ -45,7 +45,7 @@ chat → Gatekeeper
 1. `RESEARCH:` adalah protokol internal — tidak pernah bocor ke chat.
 2. Riset **maks satu putaran** per pesan; pasangan `(pesan_asli, topik)`
    dicatat di `_research_seen_keys` agar tidak looping.
-3. Cache disimpan di `%LOCALAPPDATA%\skua-lite\research_cache\` (JSON per
+3. Cache disimpan di `%LOCALAPPDATA%\aethera-quest\research_cache\` (JSON per
    URL). Tidak ada file yang ditulis/dihapus di tempat lain.
 4. Sumber internal (nama file, URL AQW Wiki, frasa `(sumber: …)`) tidak
    pernah muncul di channel AQW — `_strip_source_mentions` adalah janji
@@ -60,15 +60,15 @@ chat → Gatekeeper
 
 | Komponen | File |
 | --- | --- |
-| Gatekeeper + Reasoner | `src/skua_lite/ai_router.py` |
-| Startup mode gate | `src/skua_lite/mode.py` |
-| Farming runtime tanpa AI | `src/skua_lite/farming.py` |
-| Researcher + cache | `src/skua_lite/research.py` |
-| Glosarium class/enhancement | `src/skua_lite/aqw_knowledge.py` |
-| Panduan ultra | `src/skua_lite/ultra_guide.py` |
-| Orchestrator + wiring + Admin actions | `src/skua_lite/runner.py` |
-| Parser/dispatcher perintah admin | `src/skua_lite/admin_commands.py` |
-| Tools nyata + bukti verifikasi | `src/skua_lite/agent_tools.py` |
+| Gatekeeper + Reasoner | `src/aethera_quest/ai_router.py` |
+| Startup mode gate | `src/aethera_quest/mode.py` |
+| Farming runtime tanpa AI | `src/aethera_quest/farming.py` |
+| Researcher + cache | `src/aethera_quest/research.py` |
+| Glosarium class/enhancement | `src/aethera_quest/aqw_knowledge.py` |
+| Panduan ultra | `src/aethera_quest/ultra_guide.py` |
+| Orchestrator + wiring + Admin actions | `src/aethera_quest/runner.py` |
+| Parser/dispatcher perintah admin | `src/aethera_quest/admin_commands.py` |
+| Tools nyata + bukti verifikasi | `src/aethera_quest/agent_tools.py` |
 
 ## Lokasi Tes
 

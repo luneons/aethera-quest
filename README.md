@@ -1,4 +1,4 @@
-# skua-lite
+# aethera-quest
 
 Rencana arsitektur dan roadmap jangka panjang untuk scanner area berbasis SWF +
 state server ada di [`docs/RENCANA_INDUK.md`](docs/RENCANA_INDUK.md).
@@ -11,18 +11,18 @@ terpisah: **MODE AI ASISTEN** dan **MODE FARMING**.
 
 Launcher tersedia untuk tiap OS:
 
-- Windows: klik `JALANKAN_SKUA_LITE.bat`.
-- Linux: jalankan `./JALANKAN_SKUA_LITE.sh`.
-- macOS: klik `JALANKAN_SKUA_LITE.command` dari Finder atau jalankan
-  `./JALANKAN_SKUA_LITE.sh` dari Terminal.
+- Windows: klik `JALANKAN_AETHERA_QUEST.bat`.
+- Linux: jalankan `./JALANKAN_AETHERA_QUEST.sh`.
+- macOS: klik `JALANKAN_AETHERA_QUEST.command` dari Finder atau jalankan
+  `./JALANKAN_AETHERA_QUEST.sh` dari Terminal.
 
 Launcher Linux/macOS otomatis mencari Python 3.11+, membuat `.venv`, memasang
 package/dependency bila belum ada, lalu meneruskan semua argumen CLI. Jika file
 hasil unduhan belum executable, jalankan sekali:
 
-    chmod +x JALANKAN_SKUA_LITE.sh JALANKAN_SKUA_LITE.command
+    chmod +x JALANKAN_AETHERA_QUEST.sh JALANKAN_AETHERA_QUEST.command
 
-Jalankan launcher sesuai OS atau `python -m skua_lite`; sebelum login bot
+Jalankan launcher sesuai OS atau `python -m aethera_quest`; sebelum login bot
 selalu meminta pilihan:
 
     [1] MODE AI ASISTEN
@@ -88,7 +88,7 @@ Diuji live: POST api/login/now -> server mem-parse user/pass/option.
 
 ## Alur startup
 
-    python -m skua_lite
+    python -m aethera_quest
       -> pilih MODE AI ASISTEN atau MODE FARMING
       -> prompt username & password (tidak ditampilkan; disimpan terenkripsi)
       -> HTTP login ke game.aq.com/game/api/login/now (ambil sToken)
@@ -112,35 +112,35 @@ bot tetap berjalan di latar belakang.
 
 Semua command farming memakai prefix titik:
 
-    skua-farm> .status
-    skua-farm> .join lair-100000
-    skua-farm> .move 850 302
-    skua-farm> .combat
-    skua-farm> .area
-    skua-farm> .area json
-    skua-farm> .capture on
-    skua-farm> .chat halo semua
-    skua-farm> .chat /join yulgar-14045
-    skua-farm> .chat /goto mele
-    skua-farm> .cells
-    skua-farm> .cell Stairs
-    skua-farm> .cell Cave BottomLeft
-    skua-farm> .attack Water Draconian
-    skua-farm> .attack auto
-    skua-farm> .attack off
-    skua-farm> lawan semua musuh yang ada di map ini
-    skua-farm> berhenti lawan musuh
-    skua-farm> .goal map
-    skua-farm> .goal stop
-    skua-farm> .drop <drop_id>
-    skua-farm> .rest
-    skua-farm> .booster <item_id>
-    skua-farm> .aggro <MonMapID> [MonMapID ...]
-    skua-farm> .quest <quest_id> [reward_id] [turn_ins]
-    skua-farm> .sell <item_id> <qty> <char_item_id>
-    skua-farm> .bank load
-    skua-farm> .bank in <item_id> <char_item_id>
-    skua-farm> .bank out <item_id> <char_item_id>
+    aethera> .status
+    aethera> .join lair-100000
+    aethera> .move 850 302
+    aethera> .combat
+    aethera> .area
+    aethera> .area json
+    aethera> .capture on
+    aethera> .chat halo semua
+    aethera> .chat /join yulgar-14045
+    aethera> .chat /goto mele
+    aethera> .cells
+    aethera> .cell Stairs
+    aethera> .cell Cave BottomLeft
+    aethera> .attack Water Draconian
+    aethera> .attack auto
+    aethera> .attack off
+    aethera> lawan semua musuh yang ada di map ini
+    aethera> berhenti lawan musuh
+    aethera> .goal map
+    aethera> .goal stop
+    aethera> .drop <drop_id>
+    aethera> .rest
+    aethera> .booster <item_id>
+    aethera> .aggro <MonMapID> [MonMapID ...]
+    aethera> .quest <quest_id> [reward_id] [turn_ins]
+    aethera> .sell <item_id> <qty> <char_item_id>
+    aethera> .bank load
+    aethera> .bank in <item_id> <char_item_id>
+    aethera> .bank out <item_id> <char_item_id>
 
 `.attack <nama>` memfilter monster hasil scan berdasarkan nama. `.attack auto`
 tidak memakai filter nama: engine memilih semua monster hidup dalam cell/frame
@@ -199,7 +199,7 @@ debug, quit.
 - Disimpan terenkripsi dengan Windows DPAPI (CryptProtectData), terikat ke
   akun Windows pengguna -> file tidak bisa didekripsi di mesin lain.
 - Fallback Fernet+PBKDF2 untuk non-Windows.
-- Lokasi: %LOCALAPPDATA%\skua-lite\accounts.enc
+- Lokasi: %LOCALAPPDATA%\aethera-quest\accounts.enc
 
 ## Pilihan cara menyimpan akun (multi vs terenkripsi)
 
@@ -216,7 +216,7 @@ Ada dua cara menyimpan akun. Pilih satu sesuai kebutuhan:
 **B. File `akun.txt` lokal terbuka (banyak akun sekaligus, multi-bot)**
 
 - Buat file `akun.txt` di folder data lokal
-  (`%LOCALAPPDATA%\skua-lite\akun.txt`).
+  (`%LOCALAPPDATA%\aethera-quest\akun.txt`).
 - Isi satu baris per akun dengan format `username,password`:
   `mele,password321`
   `sorani ex,password123`
@@ -233,7 +233,7 @@ Penghapusan (`.hapusakun` / `remove_account`) menghapus dari kedua sumber.
 
 ## Struktur
 
-    src/skua_lite/
+    src/aethera_quest/
         __main__.py     # CLI entry (argparse)
         config.py       # konstanta protokol/endpoint
         credentials.py  # storage kredensial (DPAPI)
@@ -267,29 +267,29 @@ Penghapusan (`.hapusakun` / `remove_account`) menghapus dari kedua sumber.
 
 Windows:
 
-    JALANKAN_SKUA_LITE.bat
+    JALANKAN_AETHERA_QUEST.bat
 
 Linux:
 
-    chmod +x JALANKAN_SKUA_LITE.sh
-    ./JALANKAN_SKUA_LITE.sh
+    chmod +x JALANKAN_AETHERA_QUEST.sh
+    ./JALANKAN_AETHERA_QUEST.sh
 
 macOS (Terminal atau klik file `.command` di Finder):
 
-    chmod +x JALANKAN_SKUA_LITE.sh JALANKAN_SKUA_LITE.command
-    ./JALANKAN_SKUA_LITE.command
+    chmod +x JALANKAN_AETHERA_QUEST.sh JALANKAN_AETHERA_QUEST.command
+    ./JALANKAN_AETHERA_QUEST.command
 
 Jalankan mode tertentu tanpa prompt (semua OS meneruskan argumen yang sama):
 
-    ./JALANKAN_SKUA_LITE.sh --mode assistant --server Yorumi
-    ./JALANKAN_SKUA_LITE.sh --mode farming --server Yorumi --map lair-100000
+    ./JALANKAN_AETHERA_QUEST.sh --mode assistant --server Yorumi
+    ./JALANKAN_AETHERA_QUEST.sh --mode farming --server Yorumi --map lair-100000
 
 Cara manual tanpa launcher:
 
     python3 -m venv .venv
     . .venv/bin/activate
     python -m pip install -e .
-    python -m skua_lite
+    python -m aethera_quest
 
 ## Test
 
@@ -299,14 +299,14 @@ Cara manual tanpa launcher:
 
 Isi konfigurasi endpoint OpenAI-compatible di file:
 
-    C:\Users\reswa\projects\skua-lite\.env
+    C:\Users\reswa\projects\aethera-quest\.env
 
 Template isinya:
 
-    SKUA_AI_BASE_URL=https://provider.example/v1
-    SKUA_AI_API_KEY=your-key
-    SKUA_AI_MODEL=your-model
-    SKUA_AI_TIMEOUT=20
+    AETHERA_QUEST_AI_BASE_URL=https://provider.example/v1
+    AETHERA_QUEST_AI_API_KEY=your-key
+    AETHERA_QUEST_AI_MODEL=your-model
+    AETHERA_QUEST_AI_TIMEOUT=20
 
 File dibaca otomatis saat bot dijalankan dari folder project; environment sistem
 masih dapat mengoverride nilainya. `/chat/completions` ditambahkan otomatis jika
@@ -342,7 +342,7 @@ koordinat awal, lalu mengaktifkan AFK.
     !exec <kode>      -> jalankan snippet Python singkat di folder project
                          (API key tidak diteruskan ke child process)
     !run <perintah>   -> perintah allowlist baca-saja; default MATI
-                         (aktifkan via `SKUA_ADMIN_SHELL=1` bila perlu)
+                         (aktifkan via `AETHERA_QUEST_ADMIN_SHELL=1` bila perlu)
     !admin off        -> matikan Admin Mode, AI chat tetap ON
 
 Paket `userGone`
@@ -363,12 +363,12 @@ default dinaikkan ke 60 detik dan batas token jawaban ke 500 supaya model punya 
 lebih lama sebelum merangkum ke 150 karakter balasan AQW.
 
 Setiap pemain memiliki memori percakapan per-orang (12 turn terakhir, maks 40 pemain) yang
-disimpan ke `%LOCALAPPDATA%\skua-lite\ai_memory.json`, sehingga pertanyaan lanjutan seperti
+disimpan ke `%LOCALAPPDATA%\aethera-quest\ai_memory.json`, sehingga pertanyaan lanjutan seperti
 "tadi gua bilang apa?" masih bisa dijawab walau bot sempat restart.
 
 Jika jawaban AQW belum tersedia di konteks lokal, model dapat meminta satu putaran riset lewat
 marker internal `RESEARCH:`. Bot mencari halaman AQW Wiki, mencoba URL/slug langsung, memakai
-Wayback saat Wikidot timeout, lalu menyimpan teks ke `%LOCALAPPDATA%\skua-lite
+Wayback saat Wikidot timeout, lalu menyimpan teks ke `%LOCALAPPDATA%\aethera-quest
 esearch_cache\`.
 Marker, URL, nama file, dan sumber internal tidak pernah diteruskan ke chat. Lihat `agent/README.md`,
 `agent/AGENT.md`, `agent/SKILL.md`, dan `agent/HEARTBEAT.md` untuk kontrak operasi lengkap.

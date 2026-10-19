@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from skua_lite import cli
+from aethera_quest import cli
 
 
 @pytest.fixture

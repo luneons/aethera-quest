@@ -1,7 +1,7 @@
 """Quest-state reducer tests for turn-in readiness from live item quantities."""
 import json
 
-from skua_lite.quest_state import QuestState
+from aethera_quest.quest_state import QuestState
 
 
 def _packet(cmd: str, **obj) -> str:

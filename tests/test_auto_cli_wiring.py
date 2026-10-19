@@ -6,8 +6,8 @@ methods (combat.attack, cli.move_to_cell, farming.get_drop, etc).
 import pytest
 from unittest.mock import Mock, call
 
-from skua_lite.auto_planner import AutoDecision, AutoGoal
-from skua_lite.cli import dispatch_farm
+from aethera_quest.auto_planner import AutoDecision, AutoGoal
+from aethera_quest.cli import dispatch_farm
 
 
 def _mock_orch():

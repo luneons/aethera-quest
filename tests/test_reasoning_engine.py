@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from skua_lite.reasoning_engine import (
+from aethera_quest.reasoning_engine import (
     FailureKind,
     FailureReason,
     ReasoningEngine,
@@ -11,7 +11,7 @@ from skua_lite.reasoning_engine import (
     SubGoalKind,
     diagnose_failure,
 )
-from skua_lite.quest_state import QuestState
+from aethera_quest.quest_state import QuestState
 
 
 # --------------------------------------------------------------------------- helpers
@@ -140,7 +140,7 @@ class TestPlanRecovery:
 
 class TestFormatLog:
     def test_format_log_prerequisite(self):
-        from skua_lite.reasoning_engine import format_diagnosis_log
+        from aethera_quest.reasoning_engine import format_diagnosis_log
         reason = FailureReason(
             kind=FailureKind.PREREQUISITE_QUEST,
             action="acceptQuest",
@@ -156,7 +156,7 @@ class TestFormatLog:
         assert "sevencircles" in msg
 
     def test_format_log_no_steps(self):
-        from skua_lite.reasoning_engine import format_diagnosis_log
+        from aethera_quest.reasoning_engine import format_diagnosis_log
         reason = FailureReason(
             kind=FailureKind.UNKNOWN,
             action="acceptQuest",

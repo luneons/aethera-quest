@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from skua_lite import runner
-from skua_lite.credentials import MultiAccountStore
-from skua_lite.mode import RunMode
+from aethera_quest import runner
+from aethera_quest.credentials import MultiAccountStore
+from aethera_quest.mode import RunMode
 
 
 # ---------------------------------------------------------------- MultiOrchestrator unit
@@ -34,7 +34,7 @@ def _make_orch(username: str, connected: bool = True) -> SimpleNamespace:
 
 
 def test_multi_orchestrator_holds_multiple_slots():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     mo = MultiOrchestrator()
     orch1 = _make_orch("Hero1")
@@ -49,7 +49,7 @@ def test_multi_orchestrator_holds_multiple_slots():
 
 
 def test_multi_orchestrator_list_usernames():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     mo = MultiOrchestrator()
     mo.add_slot("Alice", _make_orch("Alice"))
@@ -60,7 +60,7 @@ def test_multi_orchestrator_list_usernames():
 
 
 def test_multi_orchestrator_remove_slot():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     mo = MultiOrchestrator()
     mo.add_slot("Hero1", _make_orch("Hero1"))
@@ -78,7 +78,7 @@ def test_multi_orchestrator_remove_slot():
 
 
 def test_broadcast_dispatch_hits_all_active_slots():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     calls: dict[str, list] = {}
 
@@ -99,7 +99,7 @@ def test_broadcast_dispatch_hits_all_active_slots():
 
 
 def test_broadcast_skips_disconnected_slots():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     calls: dict[str, list] = {}
 
@@ -119,7 +119,7 @@ def test_broadcast_skips_disconnected_slots():
 
 
 def test_broadcast_returns_per_slot_output():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
     import io
     from contextlib import redirect_stdout
 
@@ -141,7 +141,7 @@ def test_broadcast_returns_per_slot_output():
 
 
 def test_multi_status_aggregates_all_slots():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     mo = MultiOrchestrator()
     mo.add_slot("Alice", _make_orch("Alice"))
@@ -159,8 +159,8 @@ def test_multi_status_aggregates_all_slots():
 
 def test_telegram_broadcast_level_to_all_slots():
     """Telegram /level 100 harus dikirim ke semua slot aktif."""
-    from skua_lite.multi_session import MultiOrchestrator
-    from skua_lite.telegram_control import TelegramControl
+    from aethera_quest.multi_session import MultiOrchestrator
+    from aethera_quest.telegram_control import TelegramControl
 
     class FakeTransport:
         def __init__(self):
@@ -217,7 +217,7 @@ def test_telegram_broadcast_level_to_all_slots():
 
 
 def test_multi_status_all_reports_level_class_hp_and_task():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
     from types import SimpleNamespace
     from unittest.mock import Mock
 
@@ -249,7 +249,7 @@ def test_multi_status_all_reports_level_class_hp_and_task():
 
 
 def test_multi_dashboard_text_formats_rich_cards():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
     from types import SimpleNamespace
     from unittest.mock import Mock
 

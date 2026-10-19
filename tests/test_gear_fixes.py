@@ -8,8 +8,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite import cli
-from skua_lite.inventory import ItemCatalog
+from aethera_quest import cli
+from aethera_quest.inventory import ItemCatalog
 from tests.test_inventory import _inv_packet, _bank_packet, SWORD
 
 
@@ -54,7 +54,7 @@ def test_catalog_find_by_id_works_like_find_by_name():
 
 
 def test_cli_list_output_does_not_double_number():
-    from skua_lite import cli
+    from aethera_quest import cli
     
     runtime = Mock()
     runtime.item_report.return_value = [

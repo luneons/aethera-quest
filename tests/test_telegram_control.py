@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from skua_lite import telegram_control as tg
+from aethera_quest import telegram_control as tg
 
 
 class FakeTransport:
@@ -24,7 +24,7 @@ class FakeTransport:
 
     def get_me(self):
         self.get_me_calls += 1
-        return {"id": 7, "username": "skua_bot", "first_name": "Skua"}
+        return {"id": 7, "username": "aethera_bot", "first_name": "Aethera"}
 
     def get_updates(self, offset=None, timeout=25):
         self.offsets.append(offset)
@@ -93,8 +93,8 @@ def _callback(data, *, user_id=555, chat_id=99, message_id=5):
 def test_config_reads_token_and_owner_from_dotenv_file(tmp_path):
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "SKUA_TELEGRAM_TOKEN=123:file-token\n"
-        "SKUA_TELEGRAM_OWNER_ID=987654321\n",
+        "AETHERA_QUEST_TELEGRAM_TOKEN=123:file-token\n"
+        "AETHERA_QUEST_TELEGRAM_OWNER_ID=987654321\n",
         encoding="utf-8",
     )
 
@@ -107,13 +107,13 @@ def test_config_reads_token_and_owner_from_dotenv_file(tmp_path):
 def test_process_environment_overrides_dotenv_file(tmp_path):
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "SKUA_TELEGRAM_TOKEN=123:file-token\n"
-        "SKUA_TELEGRAM_OWNER_ID=111\n",
+        "AETHERA_QUEST_TELEGRAM_TOKEN=123:file-token\n"
+        "AETHERA_QUEST_TELEGRAM_OWNER_ID=111\n",
         encoding="utf-8",
     )
 
     config = tg.TelegramConfig.from_env(
-        {"SKUA_TELEGRAM_TOKEN": "456:process-token", "SKUA_TELEGRAM_OWNER_ID": "222"},
+        {"AETHERA_QUEST_TELEGRAM_TOKEN": "456:process-token", "AETHERA_QUEST_TELEGRAM_OWNER_ID": "222"},
         env_file=env_file,
     )
 
@@ -123,8 +123,8 @@ def test_process_environment_overrides_dotenv_file(tmp_path):
 
 def test_config_reads_token_and_owner_from_env():
     config = tg.TelegramConfig.from_env({
-        "SKUA_TELEGRAM_TOKEN": "123:abc",
-        "SKUA_TELEGRAM_OWNER_ID": "555",
+        "AETHERA_QUEST_TELEGRAM_TOKEN": "123:abc",
+        "AETHERA_QUEST_TELEGRAM_OWNER_ID": "555",
     })
 
     assert config.token == "123:abc"
@@ -145,8 +145,8 @@ def test_config_rejects_non_numeric_owner_id(tmp_path):
     empty_env = tmp_path / ".env"
     empty_env.write_text("", encoding="utf-8")
     config = tg.TelegramConfig.from_env({
-        "SKUA_TELEGRAM_TOKEN": "123:abc",
-        "SKUA_TELEGRAM_OWNER_ID": "bukan-angka",
+        "AETHERA_QUEST_TELEGRAM_TOKEN": "123:abc",
+        "AETHERA_QUEST_TELEGRAM_OWNER_ID": "bukan-angka",
     }, env_file=empty_env)
 
     assert config.token == "123:abc"
@@ -163,7 +163,7 @@ def test_slash_command_maps_to_the_same_farm_command_set():
 
 
 def test_slash_command_syntax_forms_normalize_identically():
-    assert tg.parse_telegram_command("/level@skua_bot 80") == ("level", "80")
+    assert tg.parse_telegram_command("/level@aethera_bot 80") == ("level", "80")
     assert tg.parse_telegram_command("level 80") == ("level", "80")
     assert tg.parse_telegram_command(".level 80") == ("level", "80")
 
@@ -338,7 +338,7 @@ def test_callback_acc_calls_switch_account_by_name():
 
 
 def test_tambahakun_cli_adds_to_multi_account_store():
-    from skua_lite.cli import parse_farm_command, dispatch_farm
+    from aethera_quest.cli import parse_farm_command, dispatch_farm
 
     saved: dict[str, str] = {}
 
@@ -524,7 +524,7 @@ def test_screenshot_with_bot_username_falls_back_cleanly_on_offline_render():
 
 
 def test_telegram_join_broadcasts_to_all_multi_accounts():
-    from skua_lite.multi_session import MultiOrchestrator
+    from aethera_quest.multi_session import MultiOrchestrator
 
     transport = FakeTransport()
     calls1 = []
@@ -597,7 +597,7 @@ def test_startup_mode_shows_startup_buttons_not_farming_buttons():
 
 def test_startup_callback_mode_selection_updates_signal():
     """Menekan tombol mode di Telegram mengeset pilihan mode di startup_signal dan menampilkan tombol akun."""
-    from skua_lite.mode import StartupSignal, RunMode
+    from aethera_quest.mode import StartupSignal, RunMode
 
     transport = FakeTransport()
     calls: list[tuple] = []
@@ -627,7 +627,7 @@ def test_startup_callback_mode_selection_updates_signal():
 
 def test_startup_callback_select_single_account():
     """Menekan tombol akun di Telegram mengeset selected_account_flow ke single [username]."""
-    from skua_lite.mode import StartupSignal, RunMode
+    from aethera_quest.mode import StartupSignal, RunMode
 
     transport = FakeTransport()
     calls: list[tuple] = []
@@ -653,7 +653,7 @@ def test_startup_callback_select_single_account():
 
 def test_startup_callback_select_all_accounts_multi():
     """Menekan tombol Semua (Multi) di Telegram mengeset selected_account_flow ke multi [usernames]."""
-    from skua_lite.mode import StartupSignal, RunMode
+    from aethera_quest.mode import StartupSignal, RunMode
 
     transport = FakeTransport()
     calls: list[tuple] = []
@@ -679,7 +679,7 @@ def test_startup_callback_select_all_accounts_multi():
 
 def test_startup_callback_reset_mode_restores_mode_buttons():
     """Menekan tombol Ganti Mode mereset signal dan mengembalikan tombol mode."""
-    from skua_lite.mode import StartupSignal, RunMode
+    from aethera_quest.mode import StartupSignal, RunMode
 
     transport = FakeTransport()
     calls: list[tuple] = []

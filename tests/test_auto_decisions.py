@@ -6,7 +6,7 @@ and no test depends on timing.
 """
 from unittest.mock import Mock
 
-from skua_lite.auto_planner import (
+from aethera_quest.auto_planner import (
     AutoDecision,
     AutoGoal,
     AutoObservation,

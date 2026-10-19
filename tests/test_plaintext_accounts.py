@@ -17,7 +17,7 @@ import sys
 
 import pytest
 
-from skua_lite import credentials
+from aethera_quest import credentials
 
 
 # --------------------------------------------------------------------------

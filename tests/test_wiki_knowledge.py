@@ -5,7 +5,7 @@ import json
 import sqlite3
 from pathlib import Path
 
-from skua_lite.wiki_knowledge import WikiKnowledge, build_wiki_database
+from aethera_quest.wiki_knowledge import WikiKnowledge, build_wiki_database
 
 
 def _source_dir(tmp_path: Path) -> Path:

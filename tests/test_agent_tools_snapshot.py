@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from skua_lite.agent_tools import AgentTools
+from aethera_quest.agent_tools import AgentTools
 
 
 class _Proc:
