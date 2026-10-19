@@ -91,6 +91,9 @@ object SfsProtocol {
     /** AFK toggle is always addressed to room 1, not the current area. */
     fun afk(enabled: Boolean) = xt("zm", "afk", 1, if (enabled) "true" else "false")
 
+    /** Timed player respawn is addressed to the current room with the live UID. */
+    fun respawnPlayer(room: Int, userId: Int) = xt("zm", "resPlayerTimed", room, userId)
+
     private val combatActions = setOf("aa", "a1", "a2", "a3", "a4", "i1")
 
     /**

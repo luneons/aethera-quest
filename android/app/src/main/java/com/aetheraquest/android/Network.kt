@@ -336,13 +336,20 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
     suspend fun cast(mapId: Int, action: String) = withContext(Dispatchers.IO) {
         require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
         require(mapId > 0) { "Pick a monster first" }
-        require(action in setOf("aa", "a1", "a2", "a3", "a4")) { "Unsupported action: $action" }
+        require(action in setOf("aa", "a1", "a2", "a3", "a4", "i1")) { "Unsupported action: $action" }
         val session = currentSession()
         val sequence = synchronized(stateLock) {
             ensureCurrent(session)
             combatSequence.also { combatSequence = (combatSequence + 1) % 31 }
         }
         send(session, SfsProtocol.attack(roomId, sequence, action, "m:$mapId"))
+    }
+
+    suspend fun respawnPlayer(userId: Int) = withContext(Dispatchers.IO) {
+        require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
+        require(userId > 0) { "Missing player id" }
+        val session = currentSession()
+        send(session, SfsProtocol.respawnPlayer(roomId, userId))
     }
 
     suspend fun sendChat(message: String, channel: String = "zone") = withContext(Dispatchers.IO) {

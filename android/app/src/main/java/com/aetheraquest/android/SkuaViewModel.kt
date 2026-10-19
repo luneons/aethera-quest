@@ -43,6 +43,8 @@ data class UiState(
     val credentialsSaved: Boolean = false,
     /** User choice exposed by the Remember login checkbox. */
     val rememberCredentials: Boolean = false,
+    /** Full-screen combat control layout. Back closes it. */
+    val combatMode: Boolean = false,
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -107,6 +109,8 @@ class AetheraQuestViewModel : ViewModel() {
     private val connection = GameConnection()
     private var loginToken: LoginToken? = null
     private var credentialStore: AndroidCredentialStore? = null
+    private var respawnState = RespawnState()
+    private var respawnJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -123,6 +127,31 @@ class AetheraQuestViewModel : ViewModel() {
                     className = status.className.ifBlank { _ui.value.className },
                     skills = status.skills.ifEmpty { _ui.value.skills },
                 )
+            }
+        }
+        respawnJob = viewModelScope.launch {
+            while (isActive) {
+                val current = _ui.value
+                if (current.status.phase != ConnectionPhase.IN_MAP) {
+                    respawnState = RespawnState()
+                    delay(500)
+                    continue
+                }
+                respawnState = nextRespawnState(respawnState, current.status.area, System.currentTimeMillis())
+                if (respawnState.shouldSend) {
+                    val uid = respawnState.userId
+                    if (uid != null) {
+                        val ok = runCatching { connection.respawnPlayer(uid) }.isSuccess
+                        // On failure keep the death latch and retry after a short
+                        // backoff instead of hammering the socket every tick.
+                        respawnState = if (ok) respawnState.copy(shouldSend = false, sent = true)
+                        else respawnState.copy(
+                            shouldSend = false,
+                            deathAtMs = (respawnState.deathAtMs ?: 0L) + RESPAWN_RETRY_BACKOFF_MS,
+                        )
+                    }
+                }
+                delay(500)
             }
         }
     }
@@ -332,6 +361,33 @@ class AetheraQuestViewModel : ViewModel() {
 
     fun toggleRunning() {
         _ui.value = _ui.value.copy(running = !_ui.value.running)
+    }
+
+    fun openCombatMode() {
+        _ui.value = _ui.value.copy(combatMode = combatModeAfterOpen(_ui.value.combatMode))
+    }
+
+    fun closeCombatMode() {
+        _ui.value = _ui.value.copy(combatMode = combatModeAfterBack(_ui.value.combatMode))
+    }
+
+    fun manualSkill(index: Int) {
+        val state = _ui.value
+        val action = manualCombatAction(state.status.area, state.selectedMonsterId, index)
+        if (action == null) {
+            _ui.value = state.copy(error = "No living monster selected")
+            return
+        }
+        if (!manualSkillEnabled(index, state.status.skills.ifEmpty { state.skills })) {
+            _ui.value = state.copy(error = "A$index is not available for this class")
+            return
+        }
+        when (action) {
+            is ManualCombatAction.Cast -> viewModelScope.launch {
+                runCatching { connection.cast(action.mapId, action.ref) }
+                    .onFailure { _ui.value = _ui.value.copy(error = it.message ?: "Skill failed") }
+            }
+        }
     }
 
     fun moveToCell(cell: String, pad: String = "Spawn") {

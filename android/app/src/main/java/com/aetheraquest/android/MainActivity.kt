@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -351,6 +352,11 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
     var mapDraft by remember { mutableStateOf("") }
     var chatDraft by remember { mutableStateOf("") }
     var entityFilter by remember { mutableStateOf(EntityFilter.ALL) }
+    BackHandler(enabled = ui.combatMode) { vm.closeCombatMode() }
+    if (ui.combatMode) {
+        CombatModeScreen(ui, vm)
+        return
+    }
     val allRows = remember(area) {
         buildList {
             area.self?.let { add(EntityRow(it.cell ?: "Unknown", "Self", it.username, it.hp, it.maxHp, null)) }
@@ -402,6 +408,7 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                     onClick = vm::toggleAutoAttack,
                     accentColor = autoStyle.container,
                 )
+                SecondaryButton("Combat", vm::openCombatMode)
                 SecondaryButton(if (ui.status.afk) "AFK on" else "AFK off", vm::toggleAfk)
                 SecondaryButton("Disconnect", vm::disconnect)
             }
@@ -436,6 +443,14 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                 Text("Position unknown · server has not reported tx/ty yet", style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    AnalogPad(
+                        Modifier.size(112.dp),
+                        onChange = vm::walk,
+                        onRelease = vm::stopWalking,
+                    )
+                    TertiaryButton(if (ui.running) "Speed: run" else "Speed: walk", vm::toggleRunning)
+                }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     val cellLabel = area.self?.cell ?: "unknown cell"
                     Text(
@@ -448,14 +463,6 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                         sameCellEntities,
                         Modifier.fillMaxWidth().height(112.dp),
                     )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    AnalogPad(
-                        Modifier.size(112.dp),
-                        onChange = vm::walk,
-                        onRelease = vm::stopWalking,
-                    )
-                    TertiaryButton(if (ui.running) "Speed: run" else "Speed: walk", vm::toggleRunning)
                 }
             }
             RadarLegend()
@@ -730,6 +737,87 @@ private fun EntityCard(
                 color = DimWhite,
             )
         }
+    }
+}
+
+/**
+ * Focused combat layout. It replaces the dense map dashboard so the six skill
+ * buttons have room; Android Back returns to the dashboard.
+ */
+@Composable
+private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
+    val area = ui.status.area
+    val target = resolveAttackTarget(area, ui.selectedMonsterId)?.let(area.monsters::get)
+    val self = area.self
+    Column(
+        Modifier.fillMaxSize().padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SecondaryButton("Back", vm::closeCombatMode)
+            Column(Modifier.weight(1f)) {
+                Text("Combat", style = MaterialTheme.typography.titleLarge, color = NeonCyan)
+                Text(mapLocationLabel(area.mapName, area.roomId), style = MaterialTheme.typography.bodySmall)
+            }
+            val autoStyle = autoAttackButtonStyle(ui.autoAttacking)
+            AccentButton(
+                if (ui.autoAttacking) "Auto ON" else "Auto",
+                vm::toggleAutoAttack,
+                autoStyle.container,
+            )
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, NeonPink.copy(alpha = 0.5f)),
+        ) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(target?.name ?: "No living target", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Target HP ${target?.hp ?: "?"}/${target?.maxHp ?: "?"} · ${target?.cell ?: "?"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DimWhite,
+                )
+                Text(
+                    "Your HP ${self?.hp ?: "?"}/${self?.maxHp ?: "?"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DimWhite,
+                )
+            }
+        }
+        Text("Manual skills", style = MaterialTheme.typography.titleMedium, color = NeonCyan)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            (0..2).forEach { index -> ManualSkillButton(index, ui, vm, Modifier.weight(1f)) }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            (3..5).forEach { index -> ManualSkillButton(index, ui, vm, Modifier.weight(1f)) }
+        }
+        Text(
+            "A0 basic attack · A1–A4 class skills · A5 potion slot",
+            style = MaterialTheme.typography.bodySmall,
+            color = DimWhite,
+        )
+        Spacer(Modifier.weight(1f))
+        Text("Press Android Back to return", style = MaterialTheme.typography.bodySmall, color = DimWhite)
+    }
+}
+
+@Composable
+private fun ManualSkillButton(index: Int, ui: UiState, vm: AetheraQuestViewModel, modifier: Modifier = Modifier) {
+    val skills = ui.status.skills.ifEmpty { ui.skills }
+    val enabled = resolveAttackTarget(ui.status.area, ui.selectedMonsterId) != null &&
+        manualSkillEnabled(index, skills)
+    Button(
+        onClick = { vm.manualSkill(index) },
+        enabled = enabled,
+        modifier = modifier.height(64.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = NeonCyan,
+            contentColor = SpaceNavy,
+            disabledContainerColor = DarkPanel,
+            disabledContentColor = DimWhite.copy(alpha = 0.45f),
+        ),
+    ) {
+        Text("A$index", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 
