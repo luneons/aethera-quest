@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -73,7 +76,14 @@ fun AetheraQuestApp(vm: AetheraQuestViewModel = viewModel()) {
     }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Text("Aethera Quest", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Image(
+                    painter = painterResource(R.drawable.brand_mark),
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
+                )
+                Text("Aethera Quest", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            }
             Text(if (ui.screen == Screen.HEADLESS) ui.headlessStatus.message else ui.status.message, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(12.dp))
             ui.error?.let {
