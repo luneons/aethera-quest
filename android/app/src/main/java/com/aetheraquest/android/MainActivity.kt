@@ -332,7 +332,7 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             area.players.values.filter { it.username != area.self?.username }.forEach {
                 add(EntityRow(it.cell ?: "Unknown", "Player", it.username, it.hp, it.maxHp, null))
             }
-            area.monsters.values.forEach {
+            area.monsters.values.filter { it.alive }.forEach {
                 add(EntityRow(it.cell ?: "Unknown", "Monster", it.name ?: "Monster #${it.mapId}", it.hp, it.maxHp, it.mapId))
             }
         }.groupBy { it.cell }.toSortedMap(String.CASE_INSENSITIVE_ORDER)

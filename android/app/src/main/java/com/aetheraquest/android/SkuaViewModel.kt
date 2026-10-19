@@ -44,9 +44,8 @@ internal fun screenForConnectionResult(current: Screen, status: ConnectionStatus
  * monster so the button never sends a `gar` for a corpse.
  */
 internal fun resolveAttackTarget(area: AreaSnapshot, selected: Int?): Int? {
-    fun alive(monster: MonsterState) = monster.hp == null || monster.hp > 0
-    selected?.let { id -> area.monsters[id]?.takeIf(::alive)?.let { return it.mapId } }
-    return area.monsters.values.firstOrNull(::alive)?.mapId
+    selected?.let { id -> area.monsters[id]?.takeIf { it.alive }?.let { return it.mapId } }
+    return area.monsters.values.firstOrNull { it.alive }?.mapId
 }
 
 data class HeadlessLaunch(val login: LoginToken, val server: AqwServer, val map: String)

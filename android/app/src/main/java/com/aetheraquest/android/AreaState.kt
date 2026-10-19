@@ -23,7 +23,15 @@ data class MonsterState(
     val hp: Int? = null,
     val maxHp: Int? = null,
     val state: Int? = null,
-)
+) {
+    /**
+     * AQW reports `intState: 0` (or zero HP) once a monster dies. It stays in
+     * the area snapshot so the same MonMapID can come back on respawn, but the
+     * UI must not offer it as an attack target.
+     */
+    val alive: Boolean
+        get() = (hp ?: 0) > 0 && (state ?: 1) != 0
+}
 
 data class AreaSnapshot(
     val generation: Long = 0,
@@ -105,11 +113,39 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
         val updates = obj.optJSONObject("o") ?: obj
         return when (packet.command) {
             "mtls" -> updateMonster(obj.intOrNull("id"), updates)
+            // Combat results. The server reports both sides keyed by MonMapID /
+            // username, so a hit is reflected immediately instead of leaving the
+            // monster frozen at the HP it had when the map loaded.
+            "ct" -> updateCombat(obj)
             "uotls", "tempSta" -> updatePlayer(
                 obj.stringOrNull("unm") ?: obj.stringOrNull("uoName") ?: "", updates,
             )
             else -> false
         }
+    }
+
+    /** Applies the `m` (monsters) and `p` (players) maps of a `ct` packet. */
+    private fun updateCombat(obj: JSONObject): Boolean {
+        var changed = false
+        obj.optJSONObject("m")?.let { monsters ->
+            val next = state.monsters.toMutableMap()
+            monsters.keys().forEach { key ->
+                val mapId = key.toIntOrNull() ?: return@forEach
+                val old = next[mapId] ?: return@forEach
+                val raw = monsters.optJSONObject(key) ?: return@forEach
+                next[mapId] = old.copy(
+                    hp = raw.intOrNull("intHP") ?: old.hp,
+                    maxHp = raw.intOrNull("intHPMax") ?: old.maxHp,
+                    state = raw.intOrNull("intState") ?: old.state,
+                )
+                changed = true
+            }
+            if (changed) state = state.copy(monsters = next)
+        }
+        obj.optJSONObject("p")?.let { players ->
+            players.keys().forEach { name -> players.optJSONObject(name)?.let { updatePlayer(name, it) } }
+        }
+        return changed
     }
 
     private fun feedString(packet: StringPacket): Boolean = when (packet.command) {
