@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -85,7 +87,7 @@ fun AetheraQuestApp(vm: AetheraQuestViewModel = viewModel()) {
     }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
-            BrandHeader()
+            if (showBrandHeader(ui.screen)) BrandHeader()
             Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
                 StatusLine(
                     text = if (ui.screen == Screen.HEADLESS) ui.headlessStatus.message else ui.status.message,
@@ -383,13 +385,15 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            // Map identity lives with the room/location metadata instead of
+            // competing with combat controls for horizontal space.
+            Text(
+                mapLocationLabel(area.mapName, area.roomId),
+                style = MaterialTheme.typography.titleMedium,
+                color = NeonCyan,
+            )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    area.mapName ?: "Loading map…",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = NeonCyan,
-                    modifier = Modifier.weight(1f),
-                )
+                Spacer(Modifier.weight(1f))
                 // Auto attack replaces the old single-shot button: it keeps
                 // firing and interleaves the equipped class's own rotation.
                 val autoStyle = autoAttackButtonStyle(ui.autoAttacking)
@@ -417,7 +421,7 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                     Text("no rotation · auto attack only", style = MaterialTheme.typography.bodySmall, color = DimWhite)
                 }
             }
-            Text("Room ${area.roomId ?: "–"} · generation ${area.generation}", style = MaterialTheme.typography.bodySmall)
+            Text("generation ${area.generation}", style = MaterialTheme.typography.bodySmall)
             area.self?.let {
                 Text("${it.username} · ${it.cell ?: "?"}/${it.pad ?: "?"} · (${it.x ?: "?"}, ${it.y ?: "?"})")
             }
@@ -516,9 +520,17 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                     item(key = "header-$cellName") { Text(cellName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
                     val keys = keyed[cellName] ?: entityKeys(entities)
                     itemsIndexed(entities, key = { index, _ -> keys[index] }) { _, entity ->
-                        EntityCard(entity, selected = entity.mapId != null && entity.mapId == ui.selectedMonsterId) {
-                            vm.selectMonster(entity.mapId)
-                        }
+                        EntityCard(
+                            entity = entity,
+                            selected = entity.mapId != null && entity.mapId == ui.selectedMonsterId,
+                            onClick = { vm.selectMonster(entity.mapId) },
+                            onDoubleClick = {
+                                when (val action = entityTapAction(entity, doubleTap = true)) {
+                                    is EntityTapAction.Jump -> vm.jumpToCell(action.cell)
+                                    is EntityTapAction.Select -> vm.selectMonster(action.mapId)
+                                }
+                            },
+                        )
                     }
                 }
                 if (ui.status.chat.isNotEmpty()) {
@@ -639,21 +651,30 @@ private fun FilterChip(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EntityCard(entity: EntityRow, selected: Boolean = false, onClick: () -> Unit = {}) {
+private fun EntityCard(
+    entity: EntityRow,
+    selected: Boolean = false,
+    onClick: () -> Unit = {},
+    onDoubleClick: () -> Unit = {},
+) {
     val accent = when (entity.kind) {
         "Self" -> NeonGreen
         "Player" -> NeonCyan
         else -> NeonPink
     }
     Card(
-        onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = if (selected) NeonCyanDark else MaterialTheme.colorScheme.surface,
         ),
         border = androidx.compose.foundation.BorderStroke(
             width = if (selected) 1.5.dp else 1.dp,
             color = if (selected) NeonCyan else accent.copy(alpha = 0.35f),
+        ),
+        modifier = Modifier.combinedClickable(
+            onClick = onClick,
+            onDoubleClick = onDoubleClick,
         ),
     ) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
