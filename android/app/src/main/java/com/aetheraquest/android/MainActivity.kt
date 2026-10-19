@@ -743,7 +743,9 @@ private fun EntityCard(
 
 /**
  * Focused combat layout. It replaces the dense map dashboard so the six skill
- * buttons have room; Android Back returns to the dashboard.
+ * buttons have room, and it is deliberately sized to fit one screen without
+ * scrolling: the two button rows take all remaining height, so a skill is never
+ * below the fold mid-fight. Android Back returns to the dashboard.
  */
 @Composable
 private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
@@ -761,14 +763,22 @@ private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
     val skills = ui.status.skills.ifEmpty { ui.skills }
     val className = ui.status.className.ifBlank { ui.className }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxSize().padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             SecondaryButton("Back", vm::closeCombatMode)
             Column(Modifier.weight(1f)) {
-                Text("Combat", style = MaterialTheme.typography.titleLarge, color = NeonCyan)
-                Text(mapLocationLabel(area.mapName, area.roomId), style = MaterialTheme.typography.bodySmall)
+                Text("Combat", style = MaterialTheme.typography.titleMedium, color = NeonCyan)
+                Text(
+                    mapLocationLabel(area.mapName, area.roomId),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
             }
             val autoStyle = autoAttackButtonStyle(ui.autoAttacking)
             AccentButton(
@@ -778,84 +788,111 @@ private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
             )
         }
 
-        // Player vitals: the two bars the game itself shows.
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.35f)),
+        // Your vitals, kept to one compact block so the buttons get the room.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(DarkSurface)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     self?.username ?: "You",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = PureWhite,
-                )
-                ResourceBar(
-                    label = "HP",
-                    value = self?.hp,
-                    max = self?.maxHp,
-                    barColor = when {
-                        barFraction(self?.hp, self?.maxHp) <= 0.25f -> HpRed
-                        barFraction(self?.hp, self?.maxHp) <= 0.55f -> HpYellow
-                        else -> HpGreen
-                    },
-                )
-                ResourceBar(
-                    label = "MP",
-                    value = self?.mp,
-                    max = self?.maxMp,
-                    barColor = NeonCyan,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
                 )
                 if (self?.dead == true) {
                     Text(
-                        "You are dead — respawn is automatic",
-                        style = MaterialTheme.typography.bodySmall,
+                        "DEAD · respawning",
+                        style = MaterialTheme.typography.labelSmall,
                         color = NeonRed,
                     )
                 }
             }
+            ResourceBar(
+                label = "HP",
+                value = self?.hp,
+                max = self?.maxHp,
+                barColor = when {
+                    barFraction(self?.hp, self?.maxHp) <= 0.25f -> HpRed
+                    barFraction(self?.hp, self?.maxHp) <= 0.55f -> HpYellow
+                    else -> HpGreen
+                },
+            )
+            ResourceBar(
+                label = "MP",
+                value = self?.mp,
+                max = self?.maxMp,
+                barColor = NeonCyan,
+            )
         }
 
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, NeonPink.copy(alpha = 0.5f)),
+        // Target line: name, HP bar and cell on one compact card.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(DarkSurface)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     target?.name ?: "No living target",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                ResourceBar(
-                    label = "HP",
-                    value = target?.hp,
-                    max = target?.maxHp,
-                    barColor = HpRed,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
                 )
                 Text(
-                    "Cell ${target?.cell ?: "?"} · ${className.ifBlank { "class unknown" }}",
-                    style = MaterialTheme.typography.bodySmall,
+                    "cell ${target?.cell ?: "?"}",
+                    style = MaterialTheme.typography.labelSmall,
                     color = DimWhite,
                 )
             }
+            ResourceBar(
+                label = "HP",
+                value = target?.hp,
+                max = target?.maxHp,
+                barColor = HpRed,
+            )
         }
 
-        Text("Manual skills", style = MaterialTheme.typography.titleMedium, color = NeonCyan)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Skills",
+                style = MaterialTheme.typography.labelMedium,
+                color = NeonCyan,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                className.ifBlank { "class unknown" },
+                style = MaterialTheme.typography.labelSmall,
+                color = DimWhite,
+                maxLines = 1,
+            )
+        }
+        // Two equal rows fill whatever height is left: no scrolling, and the
+        // buttons stay big enough to hit without looking.
+        Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (0..2).forEach { index ->
-                ManualSkillButton(index, ui, vm, skills, nowMs, Modifier.weight(1f))
+                ManualSkillButton(index, ui, vm, skills, nowMs, Modifier.weight(1f).fillMaxHeight())
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (3..5).forEach { index ->
-                ManualSkillButton(index, ui, vm, skills, nowMs, Modifier.weight(1f))
+                ManualSkillButton(index, ui, vm, skills, nowMs, Modifier.weight(1f).fillMaxHeight())
             }
         }
         Text(
-            "A0 basic attack · A1–A4 class skills · A5 potion slot. " +
-                "Cooldowns follow the live class data.",
-            style = MaterialTheme.typography.bodySmall,
+            "A0 basic · A1–A4 class skills · cooldowns from live class data",
+            style = MaterialTheme.typography.labelSmall,
             color = DimWhite,
+            maxLines = 1,
         )
-        Text("Press Android Back to return", style = MaterialTheme.typography.bodySmall, color = DimWhite)
     }
 }
 
@@ -863,30 +900,36 @@ private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
 @Composable
 private fun ResourceBar(label: String, value: Int?, max: Int?, barColor: Color) {
     val fraction = barFraction(value, max)
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = DimWhite)
-            Text(
-                "${value ?: "?"} / ${max ?: "?"}",
-                style = MaterialTheme.typography.labelMedium,
-                color = PureWhite,
-            )
-        }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = DimWhite,
+            modifier = Modifier.width(24.dp),
+        )
         Box(
             Modifier
-                .fillMaxWidth()
-                .height(12.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .weight(1f)
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
                 .background(DarkPanel),
         ) {
             Box(
                 Modifier
                     .fillMaxWidth(fraction)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(5.dp))
                     .background(barColor),
             )
         }
+        Text(
+            "${value ?: "?"}/${max ?: "?"}",
+            style = MaterialTheme.typography.labelSmall,
+            color = PureWhite,
+            modifier = Modifier.width(84.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            maxLines = 1,
+        )
     }
 }
 
@@ -909,8 +952,8 @@ private fun ManualSkillButton(
     Button(
         onClick = { vm.manualSkill(index) },
         enabled = enabled,
-        modifier = modifier.height(72.dp),
-        contentPadding = PaddingValues(4.dp),
+        modifier = modifier,
+        contentPadding = PaddingValues(2.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = NeonCyan,
             contentColor = SpaceNavy,
@@ -918,28 +961,23 @@ private fun ManualSkillButton(
             disabledContentColor = DimWhite.copy(alpha = 0.55f),
         ),
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
             Text("A$index", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            // Name and cost come straight from `sAct`; nothing is invented.
+            // Name, cooldown and cost all come from the live `sAct` entry.
             val subtitle = when {
-                !readiness.enabled && readiness.remainingMs > 0 -> cooldownLabel(readiness.remainingMs)
+                readiness.remainingMs > 0 -> cooldownLabel(readiness.remainingMs)
                 !readiness.enabled -> readiness.reason ?: ""
                 skill?.name?.isNotBlank() == true -> skill.name
                 else -> ""
             }
             if (subtitle.isNotBlank()) {
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                )
+                Text(subtitle, style = MaterialTheme.typography.labelSmall, maxLines = 1)
             }
-            if (skill != null && skill.manaCost > 0 && readiness.remainingMs <= 0L) {
-                Text(
-                    "${skill.manaCost} MP",
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                )
+            if (skill != null && skill.manaCost > 0) {
+                Text("${skill.manaCost} MP", style = MaterialTheme.typography.labelSmall, maxLines = 1)
             }
         }
     }

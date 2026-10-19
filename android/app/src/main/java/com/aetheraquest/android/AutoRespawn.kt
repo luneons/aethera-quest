@@ -35,23 +35,22 @@ internal const val RESPAWN_MAX_ATTEMPTS = 6
 /**
  * Advances the player death/respawn latch from server-authoritative state.
  *
- * `ct` packets for the player usually carry only `intHP`, so a zero alone is
- * ambiguous: the snapshot default is also zero. Death therefore requires proof
- * of a live character first (a positive HP sighting or a known max HP). After
- * that, zero HP/state starts a ten-second timer, `resPlayerTimed` is requested,
- * and the request is repeated every few seconds while the avatar stays dead —
- * one lost packet during a lag spike must not leave the character stuck.
- * Positive HP clears the latch for the next death.
+ * `playerDeath` is the only signal that means dead. A `ct` entry with an empty
+ * player object is a *dodge* — the server sends `"actionResult":{"type":"dodge",
+ * "hp":0}` alongside it — and `intHP:0` on its own is ambiguous because the
+ * initial snapshot is zero too. Once latched, the ten-second timer runs,
+ * `resPlayerTimed` is requested, and it is repeated every few seconds while the
+ * avatar stays dead so a lost packet cannot leave the character stuck. Positive
+ * HP clears the latch for the next death.
  */
 internal fun nextRespawnState(current: RespawnState, area: AreaSnapshot, nowMs: Long): RespawnState {
     val self = area.self ?: return current.copy(shouldSend = false)
     val alive = (self.hp ?: 0) > 0 && (self.state ?: 1) > 0
     // A live sighting always arms the latch, even before max HP is known.
     if (alive) return RespawnState(seenAlive = true)
-    // `playerDeath` / an empty `p` entry is proof on its own; otherwise the
-    // character must have been seen alive first so the placeholder zero from
-    // the initial snapshot cannot trigger a respawn.
-    val proven = self.dead || current.seenAlive || (self.maxHp ?: 0) > 0
+    // Never latched unless `playerDeath` said so, and never armed by the
+    // placeholder zeros of the initial snapshot.
+    val proven = self.dead || (current.seenAlive && (self.maxHp ?: 0) > 0)
     if (!proven) return current.copy(shouldSend = false)
 
     val deathAt = current.deathAtMs ?: nowMs

@@ -13,7 +13,6 @@ class CombatModeTest {
         assertEquals("a2", manualSkillRef(2))
         assertEquals("a3", manualSkillRef(3))
         assertEquals("a4", manualSkillRef(4))
-        assertEquals("i1", manualSkillRef(5))
         assertNull(manualSkillRef(6))
     }
 
@@ -30,13 +29,19 @@ class CombatModeTest {
         assertFalse(combatModeAfterBack(true))
     }
 
-    @Test fun `a5 is disabled when potion slot is unavailable`() {
-        val skills = mapOf("aa" to SkillInfo("aa"), "a1" to SkillInfo("a1"))
-        assertFalse(manualSkillEnabled(5, skills))
-    }
-
-    @Test fun `a5 is enabled when potion slot is live`() {
+    @Test fun `a5 potion slot stays off until it is designed`() {
+        // Even when the server advertises `i1`, A5 must not fire: casting a
+        // potion slot blindly consumes items the player never chose to use.
+        assertFalse(POTION_SLOT_ENABLED)
+        assertNull(manualSkillRef(5))
         val skills = mapOf("i1" to SkillInfo("i1"))
-        assertTrue(manualSkillEnabled(5, skills))
+        assertFalse(manualSkillEnabled(5, skills))
+        assertNull(manualCombatAction(
+            AreaSnapshot(monsters = mapOf(
+                8 to MonsterState(8, name = "Demo", cell = "r2", hp = 10, maxHp = 10, state = 1),
+            )),
+            8,
+            5,
+        ))
     }
 }

@@ -9,11 +9,17 @@ internal sealed interface ManualCombatAction {
  * Manual combat buttons are numbered a0..a5 in the UI because that is what a
  * player counts, but the wire refs are AQW's own: a0 swings (`aa`), a1..a4 are
  * class skills, and a5 is the consumable/potion slot (`i1`).
+ *
+ * A5 is parked for now: the potion slot is only sent by the server when the
+ * character actually has one equipped, and casting it blindly wastes items.
+ * [POTION_SLOT_ENABLED] gates the whole feature until it is designed properly.
  */
+internal const val POTION_SLOT_ENABLED = false
+
 internal fun manualSkillRef(index: Int): String? = when (index) {
     0 -> "aa"
     in 1..4 -> "a$index"
-    5 -> "i1"
+    5 -> if (POTION_SLOT_ENABLED) "i1" else null
     else -> null
 }
 

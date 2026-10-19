@@ -154,10 +154,11 @@ class AreaReducer(private val selfUsername: String, private var selfUserId: Int?
         obj.optJSONObject("p")?.let { players ->
             players.keys().forEach { name ->
                 val raw = players.optJSONObject(name) ?: return@forEach
-                // An empty player object is the server's death notice: the
-                // killing blow arrives before any HP numbers do.
-                val touched = if (raw.length() == 0) markPlayerDead(name) else updatePlayer(name, raw)
-                if (touched) changed = true
+                // An empty player object is NOT a death: the server sends one
+                // whenever the hit did nothing (`"type":"dodge","hp":0`), so
+                // treating it as death respawns a healthy character mid-fight.
+                if (raw.length() == 0) return@forEach
+                if (updatePlayer(name, raw)) changed = true
             }
         }
         return changed

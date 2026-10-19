@@ -9,13 +9,15 @@ import org.junit.Test
 /**
  * Death detection.
  *
- * AQW reports a killing blow as an empty player object inside `ct`:
+ * The server has exactly one death signal: the `playerDeath` command naming the
+ * victim by user id. Everything else in `ct` is combat chatter, and one shape is
+ * actively misleading — a player entry with an empty object means the hit did
+ * nothing:
  *
- *   {"cmd":"ct","p":{"mel e":{}}}
+ *   {"cmd":"ct","p":{"mel e":{}},"sara":[{"actionResult":{"type":"dodge","hp":0}}]}
  *
- * That packet carries no HP at all, so a client that waits for `intHP:0` never
- * notices the death and never respawns. `playerDeath` is the other signal, and
- * it names the victim by user id.
+ * Reading that as a death respawns a healthy character every time it dodges,
+ * which is exactly the dead/alive flicker that showed up during combat.
  */
 class PlayerDeathTest {
     private fun area(
@@ -38,17 +40,28 @@ class PlayerDeathTest {
         ),
     )
 
-    @Test fun `empty player object marks self dead`() {
-        val next = nextRespawnState(RespawnState(), area(hp = 0, state = 0, dead = true), nowMs = 1_000)
+    @Test fun `death latch records the moment of death`() {
+        val next = nextRespawnState(RespawnState(), area(hp = 0, dead = true), nowMs = 1_000)
         assertEquals(1_000L, next.deathAtMs)
         assertFalse(next.shouldSend)
     }
 
-    @Test fun `empty player object starts the ten second countdown`() {
-        val dead = nextRespawnState(RespawnState(), area(hp = 0, state = 0, dead = true), 1_000)
-        val early = nextRespawnState(dead, area(hp = 0, state = 0, dead = true), 10_999)
+    @Test fun `full hp is alive even while the combat state is set`() {
+        // intState is 2 during combat; it must never be read as "dead".
+        val state = nextRespawnState(
+            RespawnState(deathAtMs = 1_000, attempts = 1),
+            area(hp = 1600, state = 2),
+            nowMs = 99_000,
+        )
+        assertEquals(RespawnState(seenAlive = true), state)
+        assertNull(state.deathAtMs)
+    }
+
+    @Test fun `death starts the ten second countdown`() {
+        val dead = nextRespawnState(RespawnState(), area(hp = 0, dead = true), 1_000)
+        val early = nextRespawnState(dead, area(hp = 0, dead = true), 10_999)
         assertFalse(early.shouldSend)
-        val due = nextRespawnState(dead, area(hp = 0, state = 0, dead = true), 11_000)
+        val due = nextRespawnState(dead, area(hp = 0, dead = true), 11_000)
         assertTrue(due.shouldSend)
         assertEquals(46841, due.userId)
     }
@@ -93,19 +106,34 @@ class PlayerDeathTest {
         return reducer
     }
 
-    @Test fun `reducer reads mana from the snapshot`() {
+    @Test fun `reducer reads mana and id from the snapshot`() {
         val self = reducer().snapshot().self
         assertEquals(100, self?.mp)
         assertEquals(100, self?.maxMp)
+        // `uoBranch` spells the id `entID`; without it respawn has no target.
+        assertEquals(46841, self?.userId)
     }
 
-    @Test fun `reducer treats an empty player object as death`() {
+    @Test fun `reducer treats an empty player object as a dodge, not a death`() {
         val reducer = reducer()
-        val changed = reducer.feed("""{"t":"xt","b":{"r":-1,"o":{"cmd":"ct","p":{"demo-user":{}}}}}""")
-        assertTrue(changed)
+        val changed = reducer.feed(
+            """{"t":"xt","b":{"r":-1,"o":{"cmd":"ct","p":{"demo-user":{}},
+            "sara":[{"iRes":1,"actionResult":{"type":"dodge","hp":0,
+            "cInf":"m:21","tInf":"p:46841"}}]}}}""",
+        )
+        assertFalse(changed)
         val self = reducer.snapshot().self
-        assertEquals(true, self?.dead)
-        assertEquals(0, self?.hp)
+        assertEquals(false, self?.dead)
+        assertEquals(1600, self?.hp)
+    }
+
+    @Test fun `repeated dodges never mark the player dead`() {
+        val reducer = reducer()
+        repeat(5) {
+            reducer.feed("""{"t":"xt","b":{"r":-1,"o":{"cmd":"ct","p":{"demo-user":{}}}}}""")
+        }
+        assertEquals(false, reducer.snapshot().self?.dead)
+        assertEquals(1600, reducer.snapshot().self?.hp)
     }
 
     @Test fun `reducer handles playerDeath for self`() {
@@ -124,7 +152,7 @@ class PlayerDeathTest {
 
     @Test fun `a live hp update clears the dead flag`() {
         val reducer = reducer()
-        reducer.feed("""{"t":"xt","b":{"r":-1,"o":{"cmd":"ct","p":{"demo-user":{}}}}}""")
+        reducer.feed("""{"t":"xt","b":{"r":-1,"o":{"cmd":"playerDeath","userID":46841}}}""")
         assertEquals(true, reducer.snapshot().self?.dead)
 
         reducer.feed(
