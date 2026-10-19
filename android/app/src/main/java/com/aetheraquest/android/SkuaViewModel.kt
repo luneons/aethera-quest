@@ -242,6 +242,22 @@ class AetheraQuestViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Jump to a cell the server has already revealed. `mv` can never change
+     * cell, and the map's trigger geometry is not available, so an explicit
+     * destination is the only honest way to move between cells.
+     */
+    fun jumpToCell(cell: String, pad: String = "Left") {
+        if (cell.isBlank()) return
+        stopWalking()
+        tracked = null
+        _ui.value = _ui.value.copy(trackedPosition = null)
+        viewModelScope.launch {
+            runCatching { connection.moveToCell(cell.trim(), pad.trim().ifEmpty { "Left" }) }
+                .onFailure { _ui.value = _ui.value.copy(error = it.message ?: "Cell jump failed") }
+        }
+    }
+
     fun stopWalking() {
         stickX = 0f
         stickY = 0f

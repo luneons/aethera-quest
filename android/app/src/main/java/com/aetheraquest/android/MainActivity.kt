@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -340,6 +341,12 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
     val keyed = remember(grouped) {
         grouped.mapValues { (_, entities) -> entityKeys(entities) }
     }
+    // Entities sharing our own cell: the only ones the radar may plot.
+    val sameCellEntities = remember(grouped, area.self?.cell) {
+        val mine = area.self?.cell
+        if (mine == null) emptyList()
+        else grouped.entries.firstOrNull { it.key.equals(mine, ignoreCase = true) }?.value.orEmpty()
+    }
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
@@ -378,18 +385,50 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Position radar", style = MaterialTheme.typography.labelMedium)
-                    PositionRadar(area, ui.trackedPosition, Modifier.fillMaxWidth().height(84.dp))
+                    val cellLabel = area.self?.cell ?: "unknown cell"
+                    Text(
+                        "Radar · $cellLabel · ${sameCellEntities.size} here",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    PositionRadar(
+                        area,
+                        ui.trackedPosition,
+                        sameCellEntities,
+                        Modifier.fillMaxWidth().height(112.dp),
+                    )
                 }
-                Schematic(grouped, Modifier.weight(1f).height(104.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     AnalogPad(
-                        Modifier.size(104.dp),
+                        Modifier.size(112.dp),
                         onChange = vm::walk,
                         onRelease = vm::stopWalking,
                     )
                     TextButton(onClick = vm::toggleRunning) {
                         Text(if (ui.running) "Speed: run" else "Speed: walk", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+            RadarLegend()
+            // `mv` cannot change cell, so cells get an explicit target instead of
+            // a guessed direction. Only cells the server has revealed are listed.
+            val targets = jumpableCells(area)
+            if (targets.isNotEmpty()) {
+                Text("Jump to cell", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    targets.forEach { cell ->
+                        AssistChip(
+                            onClick = { vm.jumpToCell(cell) },
+                            label = { Text(cell, style = MaterialTheme.typography.labelMedium) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                labelColor = NeonCyan,
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp, NeonCyan.copy(alpha = 0.5f),
+                            ),
+                        )
                     }
                 }
             }
@@ -442,17 +481,21 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
 }
 
 @Composable
-private fun PositionRadar(area: AreaSnapshot, tracked: Pair<Int, Int>?, modifier: Modifier = Modifier) {
+private fun PositionRadar(
+    area: AreaSnapshot,
+    tracked: Pair<Int, Int>?,
+    sameCell: List<EntityRow>,
+    modifier: Modifier = Modifier,
+) {
     val position = visibleMapPosition(area, tracked)
     val point = position?.let { radarProject(it.x, it.y) }
     val confirmed = position?.confirmed == true
-    val baseColor = DarkPanel
     val gridColor = NeonCyan.copy(alpha = 0.16f)
     val dotColor = if (confirmed) HpGreen else NeonPink
     Canvas(
         modifier
             .border(1.dp, NeonCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-            .background(baseColor, RoundedCornerShape(12.dp)),
+            .background(DarkPanel, RoundedCornerShape(12.dp)),
     ) {
         // Divider lines to suggest the map square.
         val thirdX = size.width / 3f
@@ -460,6 +503,21 @@ private fun PositionRadar(area: AreaSnapshot, tracked: Pair<Int, Int>?, modifier
         for (i in 1..2) {
             drawLine(gridColor, Offset(thirdX * i, 0f), Offset(thirdX * i, size.height), 1f)
             drawLine(gridColor, Offset(0f, thirdY * i), Offset(size.width, thirdY * i), 1f)
+        }
+        // Only entities standing in our own cell are drawn: monsters elsewhere
+        // are out of reach, so plotting them on the radar would imply a
+        // proximity that does not exist.
+        val ring = minOf(size.width, size.height) * 0.30f
+        sameCell.take(12).forEachIndexed { index, entity ->
+            val angle = (index.toFloat() / sameCell.take(12).size) * Math.PI.toFloat() * 2f
+            val radius = ring * 0.72f
+            val cx = size.width / 2f + kotlin.math.cos(angle) * radius
+            val cy = size.height / 2f + kotlin.math.sin(angle) * radius
+            drawCircle(
+                color = entityColor(entity),
+                radius = 4.5f,
+                center = Offset(cx, cy),
+            )
         }
         if (point != null) {
             val px = point.x * size.width
@@ -476,32 +534,29 @@ private fun PositionRadar(area: AreaSnapshot, tracked: Pair<Int, Int>?, modifier
     }
 }
 
+private fun entityColor(entity: EntityRow): Color = when (entity.kind) {
+    "Self" -> HpGreen
+    "Player" -> NeonCyan
+    else -> NeonPink
+}
+
+/** Colour key for the radar dots, so the dots are not a mystery. */
 @Composable
-private fun Schematic(groups: Map<String, List<EntityRow>>, modifier: Modifier = Modifier) {
-    Canvas(modifier.background(DarkPanel, RoundedCornerShape(12.dp))) {
-        if (groups.isEmpty()) return@Canvas
-        val columns = kotlin.math.ceil(kotlin.math.sqrt(groups.size.toDouble())).toInt().coerceAtLeast(1)
-        val rows = kotlin.math.ceil(groups.size / columns.toDouble()).toInt()
-        val cellWidth = size.width / columns
-        val cellHeight = size.height / rows
-        groups.entries.forEachIndexed { index, (_, entities) ->
-            val cx = (index % columns + .5f) * cellWidth
-            val cy = (index / columns + .5f) * cellHeight
-            drawCircle(NeonCyan.copy(alpha = 0.14f), minOf(cellWidth, cellHeight) * .30f, Offset(cx, cy))
-            entities.forEachIndexed { entityIndex, entity -> drawEntity(entity, cx, cy, entityIndex, entities.size) }
-        }
+private fun RadarLegend() {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        LegendDot(HpGreen, "you")
+        LegendDot(NeonCyan, "player")
+        LegendDot(NeonPink, "monster")
+        Text("· same cell only", style = MaterialTheme.typography.labelSmall, color = DimWhite)
     }
 }
 
-private fun DrawScope.drawEntity(entity: EntityRow, cx: Float, cy: Float, index: Int, count: Int) {
-    val angle = (index.toFloat() / count.coerceAtLeast(1)) * Math.PI.toFloat() * 2
-    val radius = 25f
-    val color = when (entity.kind) {
-        "Self" -> HpGreen
-        "Player" -> NeonCyan
-        else -> NeonPink
+@Composable
+private fun LegendDot(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(color))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = DimWhite)
     }
-    drawCircle(color, 10f, Offset(cx + kotlin.math.cos(angle) * radius, cy + kotlin.math.sin(angle) * radius))
 }
 
 @Composable
