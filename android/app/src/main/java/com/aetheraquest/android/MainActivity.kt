@@ -317,6 +317,14 @@ private fun AnalogPad(
     }
 }
 
+internal data class AutoAttackButtonStyle(val container: Color, val content: Color)
+
+/** Bright pink/green need a dark label to remain visible at rest and pressed. */
+internal fun autoAttackButtonStyle(active: Boolean) = AutoAttackButtonStyle(
+    container = if (active) HpGreen else NeonPink,
+    content = SpaceNavy,
+)
+
 @Composable
 private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
     val area = ui.status.area
@@ -370,11 +378,12 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                 )
                 // Auto attack replaces the old single-shot button: it keeps
                 // firing and interleaves the equipped class's own rotation.
+                val autoStyle = autoAttackButtonStyle(ui.autoAttacking)
                 Button(
                     onClick = vm::toggleAutoAttack,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (ui.autoAttacking) HpGreen else NeonPink,
-                        contentColor = PureWhite,
+                        containerColor = autoStyle.container,
+                        contentColor = autoStyle.content,
                     ),
                 ) {
                     Text(if (ui.autoAttacking) "Auto ON" else "Auto", fontWeight = FontWeight.Bold)
