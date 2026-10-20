@@ -53,6 +53,8 @@ data class UiState(
     val skillReadyAt: Map<String, Long> = emptyMap(),
     /** Everything the character owns, from `loadInventoryBig`. */
     val inventory: List<OwnedItem> = emptyList(),
+    /** Slots awaiting AQW's matching `equipItem` acceptance broadcast. */
+    val equippingSlots: Set<EquipmentSlot> = emptySet(),
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -395,27 +397,35 @@ class AetheraQuestViewModel : ViewModel() {
             _ui.value = state.copy(error = "Enter a map first")
             return
         }
-        if (item.slot == null) {
+        val slot = item.slot ?: run {
             _ui.value = state.copy(error = "${item.name} cannot be equipped")
             return
         }
+        if (slot in state.equippingSlots) {
+            _ui.value = state.copy(error = "Wait for the current ${slot.label.lowercase()} change")
+            return
+        }
+        _ui.value = state.copy(equippingSlots = state.equippingSlots + slot, error = null)
         viewModelScope.launch {
-            runCatching { connection.equip(item.itemId) }
+            runCatching { connection.equip(item) }
                 .onSuccess {
+                    // Only update after AQW echoes this exact item and slot.
                     val optimistic = applyEquipped(_ui.value.inventory, item)
                     _ui.value = _ui.value.copy(
                         inventory = optimistic,
-                        className = if (item.slot == EquipmentSlot.CLASS) item.name else _ui.value.className,
+                        className = if (slot == EquipmentSlot.CLASS) item.name else _ui.value.className,
+                        equippingSlots = _ui.value.equippingSlots - slot,
                         error = null,
                     )
                     val uid = _ui.value.status.area.self?.userId
-                    if (uid != null) {
-                        // The UI remains responsive even when live servers do
-                        // not answer retrieveInventory after every equip.
-                        runCatching { connection.refreshInventory(uid) }
-                    }
+                    if (uid != null) runCatching { connection.refreshInventory(uid) }
                 }
-                .onFailure { _ui.value = _ui.value.copy(error = it.message ?: "Equip failed") }
+                .onFailure {
+                    _ui.value = _ui.value.copy(
+                        equippingSlots = _ui.value.equippingSlots - slot,
+                        error = it.message ?: "Equip failed",
+                    )
+                }
         }
     }
 

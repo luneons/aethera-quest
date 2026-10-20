@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
@@ -11,7 +12,9 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.json.JSONArray
@@ -131,6 +134,8 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
     val skillFlow = MutableStateFlow<Map<String, SkillInfo>>(emptyMap())
     /** Every owned item from the most recent `loadInventoryBig` packet. */
     val inventoryFlow = MutableStateFlow<List<OwnedItem>>(emptyList())
+    /** Server-accepted equipment broadcasts; request code waits on this. */
+    val equipConfirmationFlow = MutableSharedFlow<EquipConfirmation>(extraBufferCapacity = 16)
     val status = statusFlow.asStateFlow()
     private val stateLock = Any()
     private val sessions = ConnectionSession()
@@ -357,16 +362,27 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
     }
 
     /**
-     * Equips one owned item. The server answers with a fresh `loadInventoryBig`
-     * whose `bEquip` flags say what actually got worn, so the UI never assumes
-     * the swap succeeded.
+     * Equips one owned item and waits for the matching server broadcast.
+     * Sending bytes is not success: rapid weapon/cape swaps can race, so callers
+     * only update the UI after AQW echoes the accepted ItemID and slot.
      */
-    suspend fun equip(itemId: Int) = withContext(Dispatchers.IO) {
-        require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
-        require(itemId > 0) { "Missing item id" }
-        val session = currentSession()
-        send(session, SfsProtocol.equipItem(roomId, itemId))
-    }
+    suspend fun equip(item: OwnedItem, timeoutMs: Long = 4_000L): EquipConfirmation =
+        withContext(Dispatchers.IO) {
+            require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
+            require(item.itemId > 0) { "Missing item id" }
+            val slot = requireNotNull(item.slot) { "Item cannot be equipped" }
+            val session = currentSession()
+            val userId = requireNotNull(status.value.area.self?.userId) { "Missing player id" }
+            val accepted = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeoutOrNull(timeoutMs) {
+                    equipConfirmationFlow.first {
+                        (it.userId == 0 || it.userId == userId) && it.itemId == item.itemId && it.slot == slot
+                    }
+                }
+            }
+            send(session, SfsProtocol.equipItem(roomId, item.itemId))
+            accepted.await() ?: error("Server did not confirm ${item.name}")
+        }
 
     /** Re-requests the inventory, e.g. after a class or gear change. */
     suspend fun refreshInventory(userId: Int) = withContext(Dispatchers.IO) {
@@ -454,6 +470,9 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
                     }
                     "updateClass" -> parseClassName(parsed.payload)?.let { name ->
                         statusFlow.value = statusFlow.value.copy(className = name)
+                    }
+                    "equipItem" -> parseEquipConfirmation(parsed.payload)?.let { confirmation ->
+                        equipConfirmationFlow.tryEmit(confirmation)
                     }
                     "loadInventoryBig" -> {
                         // The same packet carries both the equipped class and

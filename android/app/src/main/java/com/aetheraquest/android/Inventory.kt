@@ -71,11 +71,10 @@ internal fun equipmentBySlot(items: List<OwnedItem>, slot: EquipmentSlot): List<
     items.filter { it.slot == slot }.sortedBy { it.name.lowercase() }
 
 /**
- * Marks [chosen] as the only equipped item in its slot.
+ * Marks [chosen] as the only equipped item in its slot after AQW confirms it.
  *
  * A live server does not always answer `retrieveInventory` after `equipItem`,
- * so the dropdown would keep showing the previous class while combat already
- * uses the new rotation. This applies the swap locally; the next real
+ * so this applies an already-confirmed swap locally; the next real
  * `loadInventoryBig` still wins because it replaces the whole list.
  */
 internal fun applyEquipped(items: List<OwnedItem>, chosen: OwnedItem): List<OwnedItem> =

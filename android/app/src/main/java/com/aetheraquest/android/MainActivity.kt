@@ -923,15 +923,17 @@ private fun EquipBar(ui: UiState, vm: AetheraQuestViewModel) {
             val worn = if (slot == EquipmentSlot.CLASS && liveClass.isNotBlank()) {
                 items.firstOrNull { it.name.equals(liveClass, ignoreCase = true) }
             } else items.firstOrNull { it.equipped }
+            val pending = slot in ui.equippingSlots
             Box {
                 OutlinedButton(
                     onClick = { openSlot = if (openSlot == slot) null else slot },
+                    enabled = !pending,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonCyan),
                     border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.6f)),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        text = "${slot.label}: ${worn?.name ?: "—"}",
+                        text = if (pending) "${slot.label}: changing…" else "${slot.label}: ${worn?.name ?: "—"}",
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                     )
@@ -960,7 +962,7 @@ private fun EquipBar(ui: UiState, vm: AetheraQuestViewModel) {
                             },
                             onClick = {
                                 openSlot = null
-                                if (!item.equipped) vm.equipItem(item)
+                                if (!item.equipped && slot !in ui.equippingSlots) vm.equipItem(item)
                             },
                         )
                     }

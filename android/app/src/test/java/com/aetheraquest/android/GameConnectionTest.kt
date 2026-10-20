@@ -11,6 +11,40 @@ class GameConnectionTest {
     private val login = LoginToken("demo-user", "sample-value")
     private val server = AqwServer("DemoServer", "sock7.aq.com", 5588, true, false, false)
 
+    @Test fun `equip waits for server confirmation`() = runBlocking {
+        val socket = ScriptedAqwSocket(confirmEquip = true)
+        val connection = GameConnection(socketFactory = { socket })
+        val worker = launch(Dispatchers.IO) { connection.connect(login, server, "demo") }
+        try {
+            withTimeout(3_000) { connection.status.first { it.phase == ConnectionPhase.IN_MAP } }
+            val item = OwnedItem(75592, "Demo Cape", EquipmentSlot.CAPE, false)
+            val result = connection.equip(item, timeoutMs = 1_000)
+            assertEquals(1, result.userId)
+            assertEquals(75592, result.itemId)
+            assertEquals(EquipmentSlot.CAPE, result.slot)
+            assertTrue(socket.sent.any { "%xt%zm%equipItem%42%75592%" == it })
+        } finally {
+            connection.close()
+            worker.cancelAndJoin()
+        }
+    }
+
+    @Test fun `equip reports missing confirmation instead of lying about success`() = runBlocking {
+        val socket = ScriptedAqwSocket(confirmEquip = false)
+        val connection = GameConnection(socketFactory = { socket })
+        val worker = launch(Dispatchers.IO) { connection.connect(login, server, "demo") }
+        try {
+            withTimeout(3_000) { connection.status.first { it.phase == ConnectionPhase.IN_MAP } }
+            val item = OwnedItem(75592, "Demo Cape", EquipmentSlot.CAPE, false)
+            val result = runCatching { connection.equip(item, timeoutMs = 100) }
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("did not confirm"))
+        } finally {
+            connection.close()
+            worker.cancelAndJoin()
+        }
+    }
+
     @Test fun firstJoinPrecedesRoomListRequestDuringWorldEntry() = runBlocking {
         val socket = ScriptedAqwSocket(rejectFirstJoinAfterRoomList = true)
         val connection = GameConnection(socketFactory = { socket })

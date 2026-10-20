@@ -26,6 +26,7 @@ class ScriptedAqwSocket(
     private val loginReject: Boolean = false,
     private val transferMapName: String? = null,
     private val ignoreLaterTransfers: Boolean = false,
+    private val confirmEquip: Boolean = true,
 ) : Socket() {
     @Volatile var wasClosed = false
         private set
@@ -77,6 +78,10 @@ class ScriptedAqwSocket(
                     "%firstJoin%" in packet && worldEntryStyle == WorldEntryStyle.JOIN_NOTICE -> offer("%xt%server%-1%You joined \"demo-1\"%", area(42))
                     "%firstJoin%" in packet && worldEntryStyle == WorldEntryStyle.JOIN_NOTICE_ALONE -> offer("%xt%server%-1%You joined \"demo-1\"%")
                     "%retrieveInventory%" in packet -> offer("""{"t":"xt","b":{"r":42,"o":{"cmd":"loadInventory"}}}""")
+                    "%equipItem%" in packet && confirmEquip -> {
+                        val itemId = packet.split('%').getOrNull(5)?.toIntOrNull() ?: 0
+                        offer("""{"t":"xt","b":{"r":42,"o":{"cmd":"equipItem","uid":1,"strES":"ba","ItemID":$itemId,"sType":"Cape"}}}""")
+                    }
                     "%tfer%" in packet -> {
                         transferRequested.countDown()
                         transfers += 1
