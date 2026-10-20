@@ -26,9 +26,16 @@ data class AuxiliaryAccount(
     val password: String = "",
     val role: CompanionRole = CompanionRole.TAUNTER_A,
     val enabled: Boolean = false,
-    /** ItemID of the taunt consumable (Scroll of Enrage). 0 = not configured. */
-    val consumableItemId: Int = 0,
+    /** ItemID of the taunt consumable (Scroll of Enrage). */
+    val consumableItemId: Int = SCROLL_OF_ENRAGE_ITEM_ID,
 )
+
+/**
+ * Scroll of Enrage as observed on the live wire (`%xt%zm%geia%<room>%scroll%<effectId>%12917%`).
+ * The trailing number is the inventory ItemID the `i1` cast must carry; the
+ * earlier number in that packet is the scroll's effect id, not an item.
+ */
+internal const val SCROLL_OF_ENRAGE_ITEM_ID = 12917
 
 /** What a companion is currently doing, for the one-line status list. */
 enum class CompanionPhase(val label: String) {

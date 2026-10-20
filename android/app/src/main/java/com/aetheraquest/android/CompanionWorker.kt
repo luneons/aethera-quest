@@ -76,6 +76,14 @@ class CompanionWorker(
         if (account.consumableItemId <= 0) {
             return Result.failure(IllegalStateException("no taunt consumable configured"))
         }
+        // Refuse before casting when the scroll is not actually owned: a wrong
+        // ItemID is silently ignored by the server, which looks like "the taunt
+        // feature is broken" instead of "the ID is wrong".
+        val check = checkConsumable(account.consumableItemId, connection.status.value.inventory)
+        if (check is ConsumableCheck.NotOwned) {
+            publish(CompanionPhase.ERROR, consumableStatusText(check))
+            return Result.failure(IllegalStateException(consumableStatusText(check)))
+        }
         publish(CompanionPhase.TAUNTING, "taunt on m:$monsterMapId")
         return runCatching {
             connection.cast(monsterMapId, "i1", itemId = account.consumableItemId)

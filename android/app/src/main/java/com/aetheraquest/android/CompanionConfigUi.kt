@@ -174,14 +174,22 @@ private fun CompanionAccountRow(
             )
         }
         if (account.role == CompanionRole.TAUNTER_A || account.role == CompanionRole.TAUNTER_B) {
-            OutlinedTextField(
-                value = if (account.consumableItemId == 0) "" else account.consumableItemId.toString(),
-                onValueChange = { v -> onUpdate { it.copy(consumableItemId = v.toIntOrNull() ?: 0) } },
-                label = { Text("Scroll ItemID") },
-                placeholder = { Text("ID inventory scroll akun ini") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
+            // Scroll of Enrage is fixed at 12917 (verified on the live wire), so it
+            // is shown as information instead of a field the user must fill in.
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    "Scroll of Enrage · ID ${account.consumableItemId}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DimWhite,
+                )
+                TextButton(onClick = { onUpdate { it.copy(consumableItemId = SCROLL_OF_ENRAGE_ITEM_ID) } }) {
+                    Text("Reset", color = NeonCyan)
+                }
+            }
         }
     }
 }

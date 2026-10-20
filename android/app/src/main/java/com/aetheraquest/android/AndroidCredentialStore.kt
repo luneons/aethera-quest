@@ -68,7 +68,7 @@ class AndroidCredentialStore(context: Context) {
                     role = runCatching { CompanionRole.valueOf(obj.optString("role")) }
                         .getOrDefault(CompanionRole.TAUNTER_A),
                     enabled = obj.optBoolean("enabled", false),
-                    consumableItemId = obj.optInt("consumableItemId", 0),
+                    consumableItemId = obj.optInt("consumableItemId", SCROLL_OF_ENRAGE_ITEM_ID),
                 )
             }
         }.getOrDefault(emptyList())
