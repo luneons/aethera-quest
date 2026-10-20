@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 internal const val WALK_TICK_MS = 220L
 internal const val WALK_STEP = 55
 internal const val RUN_STEP = 110
+/** Maximum number of companion accounts (accounts 2..4). */
+internal const val MAX_COMPANIONS = 3
 /** How often the auto-attack loop fires. 600 ms matches a human mash cadence. */
 internal const val AUTO_TICK_MS = 600L
 
@@ -55,6 +57,11 @@ data class UiState(
     val inventory: List<OwnedItem> = emptyList(),
     /** Slots awaiting AQW's matching `equipItem` acceptance broadcast. */
     val equippingSlots: Set<EquipmentSlot> = emptySet(),
+    /** Saved headless companion accounts; the primary remains the only full UI. */
+    val companions: List<AuxiliaryAccount> = emptyList(),
+    /** One-line status for each headless companion worker. */
+    val companionStatuses: List<CompanionStatus> = emptyList(),
+    val companionsRunning: Boolean = false,
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -117,6 +124,7 @@ class AetheraQuestViewModel : ViewModel() {
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui.asStateFlow()
     private val connection = GameConnection()
+    private val companions = CompanionCoordinator()
     private var loginToken: LoginToken? = null
     private var credentialStore: AndroidCredentialStore? = null
     private var respawnState = RespawnState()
@@ -138,6 +146,27 @@ class AetheraQuestViewModel : ViewModel() {
                     skills = status.skills.ifEmpty { _ui.value.skills },
                     inventory = status.inventory.ifEmpty { _ui.value.inventory },
                 )
+            }
+        }
+        viewModelScope.launch {
+            companions.statuses.collect { list ->
+                _ui.value = _ui.value.copy(companionStatuses = list)
+            }
+        }
+        viewModelScope.launch {
+            companions.running.collect { running ->
+                _ui.value = _ui.value.copy(companionsRunning = running)
+            }
+        }
+        viewModelScope.launch {
+            while (isActive) {
+                val state = _ui.value
+                companions.onPrimaryArea(
+                    state.status.area,
+                    state.status.phase == ConnectionPhase.IN_MAP,
+                    state.companions,
+                )
+                delay(TAUNT_TICK_MS)
             }
         }
         respawnJob = viewModelScope.launch {
@@ -171,6 +200,54 @@ class AetheraQuestViewModel : ViewModel() {
     fun updateUsername(v: String) { _ui.value = _ui.value.copy(username = v) }
     fun updatePassword(v: String) { _ui.value = _ui.value.copy(password = v) }
     fun updateMapName(v: String) { _ui.value = _ui.value.copy(mapName = v) }
+
+    // ---- companion accounts (accounts 2..4, no UI of their own) ----
+
+    /** Adds an empty companion slot, capped so the roster cannot grow forever. */
+    fun addCompanion() {
+        val current = _ui.value.companions
+        if (current.size >= MAX_COMPANIONS) return
+        val nextId = (current.maxOfOrNull { it.id } ?: 0) + 1
+        val role = if (current.none { it.role == CompanionRole.TAUNTER_A }) {
+            CompanionRole.TAUNTER_A
+        } else if (current.none { it.role == CompanionRole.TAUNTER_B }) {
+            CompanionRole.TAUNTER_B
+        } else {
+            CompanionRole.DPS
+        }
+        updateCompanions(current + AuxiliaryAccount(id = nextId, username = "", role = role))
+    }
+
+    fun removeCompanion(id: Int) {
+        updateCompanions(_ui.value.companions.filterNot { it.id == id })
+    }
+
+    fun updateCompanion(id: Int, transform: (AuxiliaryAccount) -> AuxiliaryAccount) {
+        updateCompanions(_ui.value.companions.map { if (it.id == id) transform(it) else it })
+    }
+
+    private fun updateCompanions(list: List<AuxiliaryAccount>) {
+        _ui.value = _ui.value.copy(companions = list)
+        runCatching { credentialStore?.saveCompanions(list) }
+    }
+
+    /** Starts every enabled companion against the primary's server and map. */
+    fun startCompanions() {
+        val state = _ui.value
+        val server = state.selectedServer
+        val map = state.status.area.mapName ?: state.mapName.trim()
+        if (server == null) {
+            _ui.value = state.copy(error = "Pick a server first")
+            return
+        }
+        if (map.isBlank()) {
+            _ui.value = state.copy(error = "Enter a map first")
+            return
+        }
+        companions.start(state.companions, server, map)
+    }
+
+    fun stopCompanions() = companions.stop()
     fun updateRememberCredentials(value: Boolean) {
         _ui.value = _ui.value.copy(rememberCredentials = value)
         // Turning it off means "do not remember me" immediately, including an
@@ -186,7 +263,11 @@ class AetheraQuestViewModel : ViewModel() {
         if (credentialStore != null) return
         credentialStore = store
         val restored = restoreSavedCredentials(_ui.value, runCatching { store.load() }.getOrNull())
-        _ui.value = restored.copy(rememberCredentials = restored.credentialsSaved)
+        val roster = runCatching { store.loadCompanions() }.getOrDefault(emptyList())
+        _ui.value = restored.copy(
+            rememberCredentials = restored.credentialsSaved,
+            companions = roster,
+        )
     }
 
     private fun applyRememberChoice(username: String, password: String) {

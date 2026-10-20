@@ -103,15 +103,42 @@ object SfsProtocol {
      * One combat action, serialized like `World.getActionResult`: the sequence
      * counter is a rolling 0..30 client value, targets use the reference-client
      * forms `m:<MonMapID>` and `p:<uid>`, and the trailing `wvz` is required.
+     *
+     * The consumable slot `i1` is special: it carries its assigned ItemID as an
+     * extra argument before `wvz`. Omitting it makes the server ignore the cast,
+     * which is why a taunt scroll would silently do nothing.
      */
-    fun attack(room: Int, actionId: Int, action: String, vararg targets: String): ByteArray {
+    fun attack(
+        room: Int,
+        actionId: Int,
+        action: String,
+        vararg targets: String,
+        itemId: Int? = null,
+    ): ByteArray {
         require(actionId in 0..30) { "Combat sequence must be 0..30" }
         require(action in combatActions) { "Unsupported combat action: $action" }
         require(targets.isNotEmpty()) { "A combat action needs a target" }
         targets.forEach { require(Regex("^[mp]:[1-9]\\d*$").matches(it)) { "Invalid combat target: $it" } }
+        if (action == "i1") {
+            require(itemId != null && itemId > 0) { "Consumable i1 needs a positive item id" }
+        } else {
+            require(itemId == null) { "Only i1 carries an item id" }
+        }
+        val args = buildList {
+            add(actionId)
+            add(targets.joinToString(",") { "$action>$it" })
+            itemId?.let { add(it) }
+            add("wvz")
+        }
         // Combat is sent to shared room 1 (reference client + aqw-python2 both
         // use `%xt%zm%gar%1%...`), not the per-area room id.
-        return xt("zm", "gar", 1, actionId, targets.joinToString(",") { "$action>$it" }, "wvz")
+        return xt("zm", "gar", 1, *args.toTypedArray())
+    }
+
+    /** Uses an inventory consumable directly (`serverUseItem`). */
+    fun useItem(room: Int, itemId: Int): ByteArray {
+        require(itemId > 0) { "Missing item id" }
+        return xt("zm", "serverUseItem", room, "+", itemId)
     }
 
     fun parseChat(text: String): ChatMessage? {

@@ -416,6 +416,13 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
             // Class and gear swaps live on the dashboard: combat mode is for
             // pressing skills, and its height is already spoken for.
             EquipBar(ui, vm)
+            // Companions run headless; the primary only shows a one-line status
+            // and a config button so the dashboard stays a single-screen layout.
+            var showCompanionDialog by remember { mutableStateOf(false) }
+            CompanionStatusStrip(ui) { showCompanionDialog = true }
+            if (showCompanionDialog) {
+                CompanionConfigDialog(ui, vm) { showCompanionDialog = false }
+            }
             // Class and rotation are shown so the user can see what the loop
             // decided to use instead of guessing why a skill never fired.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

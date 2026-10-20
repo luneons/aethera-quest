@@ -340,9 +340,12 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
 
     /**
      * Sends one combat action. `action` is a skill ref from the live `sAct`
-     * payload (`aa`, `a1`..`a4`), never a guess.
+     * payload (`aa`, `a1`..`a4`, `i1`), never a guess.
+     *
+     * For the consumable slot `i1` pass the equipped ItemID so the server knows
+     * which scroll/potion to consume.
      */
-    suspend fun cast(mapId: Int, action: String) = withContext(Dispatchers.IO) {
+    suspend fun cast(mapId: Int, action: String, itemId: Int? = null) = withContext(Dispatchers.IO) {
         require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
         require(mapId > 0) { "Pick a monster first" }
         require(action in setOf("aa", "a1", "a2", "a3", "a4", "i1")) { "Unsupported action: $action" }
@@ -351,7 +354,14 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
             ensureCurrent(session)
             combatSequence.also { combatSequence = (combatSequence + 1) % 31 }
         }
-        send(session, SfsProtocol.attack(roomId, sequence, action, "m:$mapId"))
+        send(session, SfsProtocol.attack(roomId, sequence, action, "m:$mapId", itemId = itemId))
+    }
+
+    /** Uses an inventory consumable directly (non-combat `serverUseItem`). */
+    suspend fun useItem(itemId: Int) = withContext(Dispatchers.IO) {
+        require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
+        require(itemId > 0) { "Missing item id" }
+        send(currentSession(), SfsProtocol.useItem(roomId, itemId))
     }
 
     suspend fun respawnPlayer(userId: Int) = withContext(Dispatchers.IO) {
