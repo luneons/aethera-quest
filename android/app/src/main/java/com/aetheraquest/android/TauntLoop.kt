@@ -18,7 +18,7 @@ data class TauntTiming(
      * How early to refresh. Casting at the last millisecond risks a visible gap
      * when the packet is late, so the rotation starts this far before expiry.
      */
-    val refreshLeadMs: Long = 1_500L,
+    val refreshLeadMs: Long = 2_200L,
     /**
      * Stop attacking this long before a taunt comes due. Extra attacks are
      * worthless if they push the scroll past the expiry and the party loses
