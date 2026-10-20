@@ -3,22 +3,54 @@ package com.aetheraquest.android
 /**
  * Timing rules for a taunt rotation.
  *
- * AQW's Focus from Scroll of Enrage lasts about 6 seconds, and the scroll itself
- * is on a 10 second cooldown. One character therefore cannot hold Focus alone:
- * the next taunt must land *before* the previous one expires, but not so early
- * that its own duration is wasted. Two characters alternating cover the gap.
+ * Both numbers come from the live scroll, not from a guess: the `seia` reply for
+ * Scroll of Enrage reports `cd: 20000`, and the item description says the target
+ * "focuses attacks on you ... for 10 seconds".
+ *
+ * With a 20 s scroll cooldown and a 10 s Focus, a single character can never hold
+ * it; two taunters have to alternate. Handing over right before expiry keeps the
+ * debuff up while still letting each scroll do its full work.
  */
 data class TauntTiming(
-    val focusDurationMs: Long = 6_000L,
-    val scrollCooldownMs: Long = 10_000L,
+    val focusDurationMs: Long = 10_000L,
+    val scrollCooldownMs: Long = 20_000L,
     /**
      * How early to refresh. Casting at the last millisecond risks a visible gap
      * when the packet is late, so the rotation starts this far before expiry.
      */
-    val refreshLeadMs: Long = 1_200L,
+    val refreshLeadMs: Long = 1_500L,
+    /**
+     * Stop attacking this long before a taunt comes due. Extra attacks are
+     * worthless if they push the scroll past the expiry and the party loses
+     * Focus, so the taunt always wins the race.
+     */
+    val attackReserveMs: Long = 2_000L,
 ) {
     /** The moment a new taunt must be applied, relative to the last one. */
     val refreshAtMs: Long get() = (focusDurationMs - refreshLeadMs).coerceAtLeast(0L)
+}
+
+/**
+ * Milliseconds until the next taunt is due, or null when nobody is holding Focus
+ * yet (in which case a taunt is due immediately).
+ */
+internal fun tauntDueIn(rotation: TauntRotation, nowMs: Long, timing: TauntTiming): Long? {
+    val active = rotation.activeAccountId ?: return null
+    val castAt = rotation.lastCastMs[active] ?: return null
+    return (castAt + timing.refreshAtMs) - nowMs
+}
+
+/**
+ * True while companions must hold their attacks so the upcoming taunt lands on
+ * time. Without this an attack burst can delay the scroll past the Focus expiry.
+ */
+internal fun shouldHoldAttacks(
+    rotation: TauntRotation,
+    nowMs: Long,
+    timing: TauntTiming = TauntTiming(),
+): Boolean {
+    val due = tauntDueIn(rotation, nowMs, timing) ?: return false
+    return due <= timing.attackReserveMs
 }
 
 /** Which companion should taunt next, or null while the current one still holds. */

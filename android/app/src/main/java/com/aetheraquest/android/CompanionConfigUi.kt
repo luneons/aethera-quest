@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -79,27 +81,23 @@ fun CompanionConfigDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Companion Accounts (Ultra Auto)") },
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.96f),
+        title = { Text("Companion Accounts", style = MaterialTheme.typography.headlineSmall) },
         text = {
             Column(
-                Modifier.fillMaxWidth().heightIn(max = 480.dp),
+                Modifier.fillMaxWidth().heightIn(max = 620.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    "Accounts run headless in the background to alternate taunts on the primary's target. " +
-                        "Scroll of Enrage ItemID is the inventory ID of the scroll for this account.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DimWhite,
-                )
                 if (ui.companions.size < MAX_COMPANIONS) {
                     SecondaryButton("+ Add Companion (${ui.companions.size}/$MAX_COMPANIONS)", vm::addCompanion)
                 }
                 Column(
-                    Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (ui.companions.isEmpty()) {
-                        Text("No companion account added yet.", style = MaterialTheme.typography.bodyMedium)
+                        Text("No companion account added yet.", style = MaterialTheme.typography.bodyLarge)
                     }
                     ui.companions.forEach { account ->
                         CompanionAccountRow(
@@ -133,16 +131,15 @@ private fun CompanionAccountRow(
     Column(
         Modifier
             .fillMaxWidth()
-            .background(SpaceNavy, RoundedCornerShape(6.dp))
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .background(SpaceNavy, RoundedCornerShape(8.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Checkbox(
                 checked = account.enabled,
                 onCheckedChange = { checked -> onUpdate { it.copy(enabled = checked) } },
             )
-            Text(account.role.label, style = MaterialTheme.typography.labelSmall, color = NeonCyan)
             TextButton(onClick = {
                 val nextRole = when (account.role) {
                     CompanionRole.TAUNTER_A -> CompanionRole.TAUNTER_B
@@ -152,44 +149,38 @@ private fun CompanionAccountRow(
                 }
                 onUpdate { it.copy(role = nextRole) }
             }) {
-                Text("Role: ${account.role.label}")
+                Text(account.role.label, style = MaterialTheme.typography.labelLarge, color = NeonCyan)
             }
-            TextButton(onClick = onRemove) { Text("Remove", color = HpRed) }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = onRemove) {
+                Text("Remove", style = MaterialTheme.typography.labelLarge, color = HpRed)
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedTextField(
-                value = account.username,
-                onValueChange = { name -> onUpdate { it.copy(username = name) } },
-                label = { Text("Username") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = account.password,
-                onValueChange = { pass -> onUpdate { it.copy(password = pass) } },
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-        }
+        OutlinedTextField(
+            value = account.username,
+            onValueChange = { name -> onUpdate { it.copy(username = name) } },
+            label = { Text("Username") },
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodyLarge,
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = account.password,
+            onValueChange = { pass -> onUpdate { it.copy(password = pass) } },
+            label = { Text("Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MaterialTheme.typography.bodyLarge,
+            singleLine = true,
+        )
         if (account.role == CompanionRole.TAUNTER_A || account.role == CompanionRole.TAUNTER_B) {
             // Scroll of Enrage is fixed at 12917 (verified on the live wire), so it
             // is shown as information instead of a field the user must fill in.
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    "Scroll of Enrage · ID ${account.consumableItemId}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = DimWhite,
-                )
-                TextButton(onClick = { onUpdate { it.copy(consumableItemId = SCROLL_OF_ENRAGE_ITEM_ID) } }) {
-                    Text("Reset", color = NeonCyan)
-                }
-            }
+            Text(
+                "Enrage ID ${account.consumableItemId}",
+                style = MaterialTheme.typography.labelLarge,
+                color = DimWhite,
+            )
         }
     }
 }

@@ -27,6 +27,8 @@ class CompanionWorker(
     private val connection = GameConnection(socketFactory)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
+    private var autoState = AutoAttackState()
+    private val lastUsed = mutableMapOf<String, Long>()
     private val _status = MutableStateFlow(
         CompanionStatus(id = account.id, username = account.username, role = account.role),
     )
@@ -124,6 +126,33 @@ class CompanionWorker(
                 }
             }
         }
+    }
+
+    /**
+     * Fires one ordinary attack at [monsterMapId] using the companion's own live
+     * rotation.
+     *
+     * Companions are not just taunt dispensers: standing idle wastes their damage
+     * and, worse, an idle client is indistinguishable from a stuck one. The same
+     * class rotation the primary uses is applied, with `aa` as the fallback.
+     */
+    suspend fun attack(monsterMapId: Int): Result<Unit> {
+        if (!isInMap) return Result.failure(IllegalStateException("not in a map"))
+        val status = connection.status.value
+        val now = System.currentTimeMillis()
+        val decision = nextAutoAction(
+            state = autoState,
+            rotation = rotationFor(status.className),
+            skills = status.skills,
+            nowMs = now,
+            lastUsed = lastUsed,
+            mana = status.area.self?.mp ?: 0,
+            targetMapId = monsterMapId,
+        ) ?: return Result.failure(IllegalStateException("no target"))
+        autoState = autoState.copy(targetMapId = monsterMapId, index = decision.nextIndex)
+        lastUsed[decision.ref] = now
+        return runCatching { connection.cast(monsterMapId, decision.ref) }
+            .onFailure { publish(CompanionPhase.ERROR, it.message ?: "attack failed") }
     }
 
     fun stop() {

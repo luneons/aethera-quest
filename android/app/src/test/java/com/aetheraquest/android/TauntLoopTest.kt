@@ -7,9 +7,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Focus from Scroll of Enrage lasts ~6s and the scroll has a ~10s cooldown, so a
- * single character cannot hold it. The rotation exists to hand over before the
- * buff drops; these tests pin that hand-over contract.
+ * The live scroll reports `cd: 20000` on cast and its Focus runs for 10 s, so one
+ * character can never hold Focus alone and two must alternate.
+ *
+ * These tests pin the hand-over contract, including the fact that the gap between
+ * two taunts is nearly 9 s: casting sooner wastes the previous Focus instead of
+ * extending it, which is the mistake the old 4.8 s timing made.
  */
 class TauntLoopTest {
     private fun taunter(id: Int, role: CompanionRole) =
@@ -18,6 +21,12 @@ class TauntLoopTest {
     private val a = taunter(1, CompanionRole.TAUNTER_A)
     private val b = taunter(2, CompanionRole.TAUNTER_B)
 
+    @Test fun `scroll numbers come from the live packet not a guess`() {
+        assertEquals(20_000L, TauntTiming().scrollCooldownMs)
+        assertEquals(10_000L, TauntTiming().focusDurationMs)
+        assertEquals(8_500L, TauntTiming().refreshAtMs)
+    }
+
     @Test fun `taunter a goes first`() {
         val decision = nextTaunt(TauntRotation(), listOf(a, b), nowMs = 1_000)
         assertEquals(1, decision?.accountId)
@@ -25,29 +34,42 @@ class TauntLoopTest {
     }
 
     @Test fun `rotation waits until focus is nearly gone`() {
-        var rotation = recordTaunt(TauntRotation(), TauntDecision(1, 1), nowMs = 1_000)
-        // 3s later Focus is still healthy; a second cast would waste its own buff.
-        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 4_000))
-        // Just before expiry the next taunter must take over.
+        val rotation = recordTaunt(TauntRotation(), TauntDecision(1, 1), nowMs = 1_000)
+        // 4s later Focus is still healthy; the old timing handed over here and
+        // threw away more than half of the first scroll's effect.
+        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 5_000))
+        // The hand-over is deliberately wide: 8.5s after the previous cast.
+        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 9_000))
         val handover = nextTaunt(rotation, listOf(a, b), nowMs = 1_000 + TauntTiming().refreshAtMs)
         assertEquals(2, handover?.accountId)
     }
 
-    @Test fun `the same taunter is not reused before its scroll cooldown`() {
+    @Test fun `a taunter is never reused before its own scroll cooldown`() {
         var rotation = recordTaunt(TauntRotation(), TauntDecision(1, 1), nowMs = 1_000)
-        rotation = recordTaunt(rotation, TauntDecision(2, 0), nowMs = 5_000)
-        // A cast at 1s and B at 5s: neither scroll is ready at 10s, so the loop
-        // must wait rather than spam a cooldown-locked consumable.
-        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 10_000))
-        // A's own 10s cooldown expires at 11s and it takes the next turn.
-        assertEquals(1, nextTaunt(rotation, listOf(a, b), nowMs = 11_000)?.accountId)
+        rotation = recordTaunt(rotation, TauntDecision(2, 0), nowMs = 9_500)
+        // B's Focus expires at 19.5s but A's scroll is not ready until 21s, so the
+        // loop must wait instead of spamming a cooldown-locked consumable.
+        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 18_000))
+        assertEquals(1, nextTaunt(rotation, listOf(a, b), nowMs = 21_000)?.accountId)
     }
 
     @Test fun `a taunter on cooldown is skipped instead of stalling the loop`() {
         val onlyA = listOf(a)
         val rotation = recordTaunt(TauntRotation(), TauntDecision(1, 0), nowMs = 1_000)
         assertNull(nextTaunt(rotation, onlyA, nowMs = 5_000))
-        assertEquals(1, nextTaunt(rotation, onlyA, nowMs = 11_000)?.accountId)
+        assertNull(nextTaunt(rotation, onlyA, nowMs = 12_000))
+        assertEquals(1, nextTaunt(rotation, onlyA, nowMs = 21_000)?.accountId)
+    }
+
+    @Test fun `attacks pause just before a taunt is due`() {
+        val rotation = recordTaunt(TauntRotation(), TauntDecision(1, 1), nowMs = 1_000)
+        // Far from the hand-over: companions are free to attack.
+        assertFalse(shouldHoldAttacks(rotation, nowMs = 3_000))
+        // 7s in, the hand-over is 2.5s away — still outside the 2s reserve.
+        assertFalse(shouldHoldAttacks(rotation, nowMs = 7_000))
+        // Inside the reserve window the taunt wins the race over damage.
+        assertTrue(shouldHoldAttacks(rotation, nowMs = 7_500))
+        assertNull(tauntDueIn(TauntRotation(), 7_000, TauntTiming()))
     }
 
     @Test fun `disabled and non taunt roles never taunt`() {

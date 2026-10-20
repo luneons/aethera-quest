@@ -15,6 +15,12 @@ import java.net.Socket
 
 /** How often the coordinator re-evaluates the rotation. */
 internal const val TAUNT_TICK_MS = 400L
+/**
+ * Companion attack cadence. Slower than the primary's 600 ms on purpose: a
+ * companion that floods `gar` packets delays its own taunt cast, which is the one
+ * action that must never be late.
+ */
+internal const val COMPANION_ATTACK_INTERVAL_MS = 1_500L
 
 /**
  * Runs the companion accounts and keeps a taunt rotation going.
@@ -36,6 +42,7 @@ class CompanionCoordinator(
 
     private var loopJob: Job? = null
     private var rotation = TauntRotation()
+    private val lastAttackAt = mutableMapOf<Int, Long>()
     private var lastMap: String? = null
 
     /**
@@ -98,13 +105,45 @@ class CompanionCoordinator(
         // monster's cell. The primary is the source of truth for the fight spot.
         if (!primaryReadyToTaunt(area, target)) return
         val now = System.currentTimeMillis()
-        val decision = nextTaunt(rotation, accounts, now, timing) ?: return
+        val decision = nextTaunt(rotation, accounts, now, timing)
+
+        // A taunt that is about to land outranks every attack: pause the
+        // companions' damage briefly so the scroll cannot be pushed past the
+        // Focus expiry by the packet burst.
+        if (!shouldHoldAttacks(rotation, now, timing)) {
+            attackAll(target, accounts, skipAccountId = decision?.accountId)
+        }
+
+        if (decision == null) return
         val worker = workers[decision.accountId] ?: return
         if (!worker.isInCell(primary?.cell)) return
         rotation = recordTaunt(rotation, decision, now)
         scope.launch {
             worker.taunt(target)
             refreshStatuses()
+        }
+    }
+
+    /**
+     * Keeps every companion contributing damage on its own cadence.
+     *
+     * Each companion attacks at most once per [COMPANION_ATTACK_INTERVAL_MS], and
+     * the one whose taunt just came due is skipped so its scroll cast is never
+     * delayed behind an attack packet.
+     */
+    private fun attackAll(target: Int, accounts: List<AuxiliaryAccount>, skipAccountId: Int?) {
+        val now = System.currentTimeMillis()
+        accounts.forEach { account ->
+            if (account.id == skipAccountId) return@forEach
+            val worker = workers[account.id] ?: return@forEach
+            if (!worker.isInMap) return@forEach
+            val last = lastAttackAt[account.id] ?: 0L
+            if (now - last < COMPANION_ATTACK_INTERVAL_MS) return@forEach
+            lastAttackAt[account.id] = now
+            scope.launch {
+                worker.attack(target)
+                refreshStatuses()
+            }
         }
     }
 
