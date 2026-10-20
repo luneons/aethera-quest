@@ -413,6 +413,9 @@ private fun MapScreen(ui: UiState, vm: AetheraQuestViewModel) {
                 SecondaryButton(if (ui.status.afk) "AFK on" else "AFK off", vm::toggleAfk)
                 SecondaryButton("Disconnect", vm::disconnect)
             }
+            // Class and gear swaps live on the dashboard: combat mode is for
+            // pressing skills, and its height is already spoken for.
+            EquipBar(ui, vm)
             // Class and rotation are shown so the user can see what the loop
             // decided to use instead of guessing why a skill never fired.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -893,6 +896,71 @@ private fun CombatModeScreen(ui: UiState, vm: AetheraQuestViewModel) {
             color = DimWhite,
             maxLines = 1,
         )
+    }
+}
+
+/**
+ * Equipment dropdowns. Every entry comes from the server's `loadInventoryBig`,
+ * so the list is exactly what the character owns — nothing is hardcoded, and a
+ * class the account does not have can never appear.
+ *
+ * Each button is anchored to its own `Box` so the menu drops from the button
+ * that opened it rather than from the top of the screen.
+ */
+@Composable
+private fun EquipBar(ui: UiState, vm: AetheraQuestViewModel) {
+    var openSlot by remember { mutableStateOf<EquipmentSlot?>(null) }
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        EquipmentSlot.entries.forEach { slot ->
+            val items = vm.itemsFor(slot)
+            val worn = items.firstOrNull { it.equipped }
+            Box {
+                OutlinedButton(
+                    onClick = { openSlot = if (openSlot == slot) null else slot },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonCyan),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, NeonCyan.copy(alpha = 0.6f)),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = "${slot.label}: ${worn?.name ?: "—"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                    )
+                }
+                DropdownMenu(
+                    expanded = openSlot == slot,
+                    onDismissRequest = { openSlot = null },
+                ) {
+                    if (items.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No ${slot.label.lowercase()} owned") },
+                            onClick = { openSlot = null },
+                        )
+                    }
+                    items.forEach { item ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    buildString {
+                                        append(item.name)
+                                        if (item.level > 0) append(" · Lv ${item.level}")
+                                        if (item.equipped) append("  ✓")
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            },
+                            onClick = {
+                                openSlot = null
+                                if (!item.equipped) vm.equipItem(item)
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

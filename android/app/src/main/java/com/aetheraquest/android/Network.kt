@@ -97,6 +97,8 @@ data class ConnectionStatus(
     val transferring: Boolean = false,
     val className: String = "",
     val skills: Map<String, SkillInfo> = emptyMap(),
+    /** Everything the character owns, from `loadInventoryBig`. */
+    val inventory: List<OwnedItem> = emptyList(),
 )
 
 class ConnectionSession {
@@ -127,6 +129,8 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
     private val statusFlow = MutableStateFlow(ConnectionStatus())
     /** Exposes the live skill table from the most recent `sAct` packet. */
     val skillFlow = MutableStateFlow<Map<String, SkillInfo>>(emptyMap())
+    /** Every owned item from the most recent `loadInventoryBig` packet. */
+    val inventoryFlow = MutableStateFlow<List<OwnedItem>>(emptyList())
     val status = statusFlow.asStateFlow()
     private val stateLock = Any()
     private val sessions = ConnectionSession()
@@ -352,6 +356,25 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
         send(session, SfsProtocol.respawnPlayer(roomId, userId))
     }
 
+    /**
+     * Equips one owned item. The server answers with a fresh `loadInventoryBig`
+     * whose `bEquip` flags say what actually got worn, so the UI never assumes
+     * the swap succeeded.
+     */
+    suspend fun equip(itemId: Int) = withContext(Dispatchers.IO) {
+        require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
+        require(itemId > 0) { "Missing item id" }
+        val session = currentSession()
+        send(session, SfsProtocol.equipItem(roomId, itemId))
+    }
+
+    /** Re-requests the inventory, e.g. after a class or gear change. */
+    suspend fun refreshInventory(userId: Int) = withContext(Dispatchers.IO) {
+        require(userId > 0) { "Missing player id" }
+        require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
+        send(currentSession(), SfsProtocol.retrieveInventory(roomId, userId))
+    }
+
     suspend fun sendChat(message: String, channel: String = "zone") = withContext(Dispatchers.IO) {
         require(message.isNotBlank()) { "Message is required" }
         require(status.value.phase == ConnectionPhase.IN_MAP) { "Not in a map" }
@@ -429,8 +452,20 @@ class GameConnection(private val socketFactory: () -> Socket = { Socket() }) : C
                             statusFlow.value = statusFlow.value.copy(skills = table)
                         }
                     }
-                    "updateClass", "loadInventoryBig" -> parseClassName(parsed.payload)?.let { name ->
+                    "updateClass" -> parseClassName(parsed.payload)?.let { name ->
                         statusFlow.value = statusFlow.value.copy(className = name)
+                    }
+                    "loadInventoryBig" -> {
+                        // The same packet carries both the equipped class and
+                        // the full item list, so both are read from one place.
+                        parseClassName(parsed.payload)?.let { name ->
+                            statusFlow.value = statusFlow.value.copy(className = name)
+                        }
+                        val items = parseInventory(parsed.payload)
+                        if (items.isNotEmpty()) {
+                            inventoryFlow.value = items
+                            statusFlow.value = statusFlow.value.copy(inventory = items)
+                        }
                     }
                 }
             }

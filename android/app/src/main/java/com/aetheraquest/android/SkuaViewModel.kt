@@ -51,6 +51,8 @@ data class UiState(
      * the number on a button is the same cooldown the button obeys.
      */
     val skillReadyAt: Map<String, Long> = emptyMap(),
+    /** Everything the character owns, from `loadInventoryBig`. */
+    val inventory: List<OwnedItem> = emptyList(),
 )
 
 enum class Screen { LOGIN, SERVER, JOIN, MAP, HEADLESS }
@@ -132,6 +134,7 @@ class AetheraQuestViewModel : ViewModel() {
                     ) status.message else _ui.value.error,
                     className = status.className.ifBlank { _ui.value.className },
                     skills = status.skills.ifEmpty { _ui.value.skills },
+                    inventory = status.inventory.ifEmpty { _ui.value.inventory },
                 )
             }
         }
@@ -377,6 +380,49 @@ class AetheraQuestViewModel : ViewModel() {
     fun closeCombatMode() {
         _ui.value = _ui.value.copy(combatMode = combatModeAfterBack(_ui.value.combatMode))
     }
+
+    /**
+     * Equips one owned item and then re-requests the inventory.
+     *
+     * The server's immediate `updateClass` proves a class swap before a full
+     * inventory refresh arrives. The UI still marks the selected item locally
+     * so the dropdown header cannot stay on the old class while combat has
+     * already switched rotations.
+     */
+    fun equipItem(item: OwnedItem) {
+        val state = _ui.value
+        if (state.status.phase != ConnectionPhase.IN_MAP) {
+            _ui.value = state.copy(error = "Enter a map first")
+            return
+        }
+        if (item.slot == null) {
+            _ui.value = state.copy(error = "${item.name} cannot be equipped")
+            return
+        }
+        viewModelScope.launch {
+            runCatching { connection.equip(item.itemId) }
+                .onSuccess {
+                    val optimistic = applyEquipped(_ui.value.inventory, item)
+                    _ui.value = _ui.value.copy(
+                        inventory = optimistic,
+                        className = if (item.slot == EquipmentSlot.CLASS) item.name else _ui.value.className,
+                        error = null,
+                    )
+                    val uid = _ui.value.status.area.self?.userId
+                    if (uid != null) {
+                        // The UI remains responsive even when live servers do
+                        // not answer retrieveInventory after every equip.
+                        runCatching { connection.refreshInventory(uid) }
+                    }
+                }
+                .onFailure { _ui.value = _ui.value.copy(error = it.message ?: "Equip failed") }
+        }
+    }
+
+    /** Owned items for one dropdown, with the currently worn one first. */
+    fun itemsFor(slot: EquipmentSlot): List<OwnedItem> =
+        equipmentBySlot(_ui.value.inventory, slot)
+            .sortedWith(compareByDescending<OwnedItem> { it.equipped }.thenBy { it.name.lowercase() })
 
     fun manualSkill(index: Int) {
         val state = _ui.value

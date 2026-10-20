@@ -94,6 +94,9 @@ object SfsProtocol {
     /** Timed player respawn is addressed to the current room with the live UID. */
     fun respawnPlayer(room: Int, userId: Int) = xt("zm", "resPlayerTimed", room, userId)
 
+    /** Equips one owned item by its ItemID; the server replies with new `bEquip` flags. */
+    fun equipItem(room: Int, itemId: Int) = xt("zm", "equipItem", room, itemId)
+
     private val combatActions = setOf("aa", "a1", "a2", "a3", "a4", "i1")
 
     /**
