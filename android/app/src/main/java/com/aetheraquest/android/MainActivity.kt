@@ -916,7 +916,13 @@ private fun EquipBar(ui: UiState, vm: AetheraQuestViewModel) {
     ) {
         EquipmentSlot.entries.forEach { slot ->
             val items = vm.itemsFor(slot)
-            val worn = items.firstOrNull { it.equipped }
+            // Class swaps get an immediate `updateClass`; it is more current
+            // than a stale bEquip flag from loadInventoryBig. Other slots use
+            // the inventory flag because they have no dedicated update packet.
+            val liveClass = ui.status.className.ifBlank { ui.className }
+            val worn = if (slot == EquipmentSlot.CLASS && liveClass.isNotBlank()) {
+                items.firstOrNull { it.name.equals(liveClass, ignoreCase = true) }
+            } else items.firstOrNull { it.equipped }
             Box {
                 OutlinedButton(
                     onClick = { openSlot = if (openSlot == slot) null else slot },
