@@ -66,6 +66,29 @@ class CompanionWorker(
     }
 
     /**
+     * Walks into the primary's cell so the party is stacked.
+     *
+     * A taunter in another cell cannot be hit by the monster, so this runs before
+     * any taunt is attempted. It only sends `moveToCell` when the cell actually
+     * differs, so a companion that is already stacked stays silent.
+     */
+    fun followCell(primaryCell: String?, primaryPad: String?) {
+        if (!isInMap) return
+        val plan = followCellPlan(primaryCell, primaryPad, connection.status.value.area.self?.cell) ?: return
+        scope.launch {
+            runCatching { connection.moveToCell(plan.cell, plan.pad) }
+                .onFailure { publish(CompanionPhase.ERROR, it.message ?: "move failed") }
+        }
+    }
+
+    /** True when this companion already stands in [cell]. */
+    fun isInCell(cell: String?): Boolean {
+        val wanted = cell?.trim().orEmpty()
+        if (wanted.isEmpty()) return false
+        return wanted.equals(connection.status.value.area.self?.cell?.trim(), ignoreCase = true)
+    }
+
+    /**
      * Casts the taunt consumable at [monsterMapId].
      *
      * `i1` carries the scroll's ItemID; without it the server silently ignores

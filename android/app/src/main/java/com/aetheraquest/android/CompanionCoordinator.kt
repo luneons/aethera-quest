@@ -88,11 +88,19 @@ class CompanionCoordinator(
     /** Called by the ViewModel with the primary's live area every tick. */
     fun onPrimaryArea(area: AreaSnapshot, primaryInMap: Boolean, accounts: List<AuxiliaryAccount>) {
         if (!_running.value) return
+        val primary = area.self
+        // First stack every companion in the primary's known cell. This is a
+        // prerequisite, not a side effect of taunting.
+        workers.values.forEach { it.followCell(primary?.cell, primary?.pad) }
         if (!shouldKeepTaunting(area, primaryInMap)) return
-        val target = area.monsters.values.firstOrNull { it.alive }?.mapId ?: return
+        val target = tauntTarget(area, null) ?: return
+        // Never burn a scroll until the primary itself is already in the target
+        // monster's cell. The primary is the source of truth for the fight spot.
+        if (!primaryReadyToTaunt(area, target)) return
         val now = System.currentTimeMillis()
         val decision = nextTaunt(rotation, accounts, now, timing) ?: return
         val worker = workers[decision.accountId] ?: return
+        if (!worker.isInCell(primary?.cell)) return
         rotation = recordTaunt(rotation, decision, now)
         scope.launch {
             worker.taunt(target)
