@@ -24,7 +24,7 @@ class TauntLoopTest {
     @Test fun `scroll numbers come from the live packet not a guess`() {
         assertEquals(20_000L, TauntTiming().scrollCooldownMs)
         assertEquals(10_000L, TauntTiming().focusDurationMs)
-        assertEquals(7_800L, TauntTiming().refreshAtMs)
+        assertEquals(8_500L, TauntTiming().refreshAtMs)
     }
 
     @Test fun `taunter a goes first`() {
@@ -38,9 +38,9 @@ class TauntLoopTest {
         // 4s later Focus is still healthy; the old timing handed over here and
         // threw away more than half of the first scroll's effect.
         assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 5_000))
-        // The hand-over is 7.8s after the previous cast: quick enough that Focus
+        // The hand-over is 8.5s after the previous cast: quick enough that Focus
         // never lapses, late enough that the previous scroll is not wasted.
-        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 8_000))
+        assertNull(nextTaunt(rotation, listOf(a, b), nowMs = 9_000))
         val handover = nextTaunt(rotation, listOf(a, b), nowMs = 1_000 + TauntTiming().refreshAtMs)
         assertEquals(2, handover?.accountId)
     }
@@ -66,10 +66,10 @@ class TauntLoopTest {
         val rotation = recordTaunt(TauntRotation(), TauntDecision(1, 1), nowMs = 1_000)
         // Far from the hand-over: companions are free to attack.
         assertFalse(shouldHoldAttacks(rotation, nowMs = 3_000))
-        // 7s in, the hand-over is 0.8s away — already inside the 2s reserve.
-        assertTrue(shouldHoldAttacks(rotation, nowMs = 7_000))
-        // Still outside the reserve earlier in the rotation.
-        assertFalse(shouldHoldAttacks(rotation, nowMs = 5_000))
+        // 7s in, the hand-over is still 2.5s away — outside the 0.9s reserve.
+        assertFalse(shouldHoldAttacks(rotation, nowMs = 7_000))
+        // At 8.6s only 0.9s is left, so damage yields to the incoming taunt.
+        assertTrue(shouldHoldAttacks(rotation, nowMs = 8_600))
         assertNull(tauntDueIn(TauntRotation(), 7_000, TauntTiming()))
     }
 

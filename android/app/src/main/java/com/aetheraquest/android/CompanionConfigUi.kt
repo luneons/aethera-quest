@@ -50,10 +50,14 @@ fun CompanionStatusStrip(ui: UiState, onOpenDialog: () -> Unit) {
             color = if (ui.companionsRunning) NeonCyan else DimWhite,
         )
         if (statuses.isNotEmpty()) {
+            val taunters = ui.companions.count {
+                it.enabled && (it.role == CompanionRole.TAUNTER_A || it.role == CompanionRole.TAUNTER_B)
+            }
+            val warning = if (ui.companionsRunning) focusGapWarning(taunters) else null
             Text(
-                text = statuses.joinToString(" · ") { "${it.username.ifBlank { "acc#${it.id}" }}: ${it.detail}" },
+                text = warning ?: statuses.joinToString(" · ") { "${it.username.ifBlank { "acc#${it.id}" }}: ${it.detail}" },
                 style = MaterialTheme.typography.bodySmall,
-                color = DimWhite,
+                color = if (warning != null) NeonAmber else DimWhite,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
             )

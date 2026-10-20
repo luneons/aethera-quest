@@ -15,16 +15,25 @@ data class TauntTiming(
     val focusDurationMs: Long = 10_000L,
     val scrollCooldownMs: Long = 20_000L,
     /**
-     * How early to refresh. Casting at the last millisecond risks a visible gap
-     * when the packet is late, so the rotation starts this far before expiry.
+     * How early to refresh, chosen so the two-taunter rotation has the smallest
+     * possible worst gap.
+     *
+     * With a 20 s cooldown and two scrolls, the gaps alternate as `r` and
+     * `20 - r`. The worst gap is minimised when `r` is as large as possible, but
+     * it can never drop below 10 s, so 8.5 s (worst gap 11.4 s) is the sweet spot:
+     * going faster, as an earlier 7.8 s did, only widened the following gap to
+     * 12.2 s and made the stutter more obvious.
      */
-    val refreshLeadMs: Long = 2_200L,
+    val refreshLeadMs: Long = 1_500L,
     /**
      * Stop attacking this long before a taunt comes due. Extra attacks are
      * worthless if they push the scroll past the expiry and the party loses
      * Focus, so the taunt always wins the race.
+     *
+     * Kept short on purpose: this is dead time added to every rotation, and a
+     * 2 s pause was itself visible as a stutter in the fight rhythm.
      */
-    val attackReserveMs: Long = 2_000L,
+    val attackReserveMs: Long = 900L,
 ) {
     /** The moment a new taunt must be applied, relative to the last one. */
     val refreshAtMs: Long get() = (focusDurationMs - refreshLeadMs).coerceAtLeast(0L)
@@ -58,6 +67,31 @@ data class TauntDecision(
     val accountId: Int,
     val nextIndex: Int,
 )
+
+/**
+ * How many taunters are needed to keep Focus up with no gap at all.
+ *
+ * A scroll is on a 20 s cooldown and its Focus lasts 10 s, so one character can
+ * cover at most half the timeline. Two alternate 7.8 s and 12.1 s gaps — the
+ * 12.1 s one is longer than Focus, which is exactly the stutter the player sees
+ * as "loop, pause, loop". Three taunters cover 3 x 7.8 s = 23.4 s > 20 s and the
+ * rotation becomes seamless.
+ */
+internal const val TAUNTERS_FOR_SEAMLESS_FOCUS = 3
+
+/**
+ * Why the rotation is not seamless, for the status line.
+ *
+ * This is information, not an error: two taunters still work, the debuff just
+ * drops briefly between the second and first cast. Telling the player the reason
+ * beats letting them think the loop is broken.
+ */
+internal fun focusGapWarning(taunterCount: Int): String? = when {
+    taunterCount <= 0 -> "no taunter configured"
+    taunterCount < TAUNTERS_FOR_SEAMLESS_FOCUS ->
+        "$taunterCount taunter(s): Focus drops briefly, add one more for a seamless loop"
+    else -> null
+}
 
 /** Mutable-by-copy rotation state: who taunted last and when. */
 data class TauntRotation(
