@@ -14,8 +14,8 @@ import kotlinx.coroutines.launch
 internal const val WALK_TICK_MS = 220L
 internal const val WALK_STEP = 55
 internal const val RUN_STEP = 110
-/** Maximum number of companion accounts (accounts 2..4). */
-internal const val MAX_COMPANIONS = 3
+/** Maximum number of companion accounts (accounts 2..8). */
+internal const val MAX_COMPANIONS = 7
 /** How often the auto-attack loop fires. 600 ms matches a human mash cadence. */
 internal const val AUTO_TICK_MS = 600L
 

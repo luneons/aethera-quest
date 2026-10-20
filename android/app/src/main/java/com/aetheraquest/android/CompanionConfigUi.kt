@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -78,20 +81,33 @@ fun CompanionConfigDialog(
         onDismissRequest = onDismiss,
         title = { Text("Companion Accounts (Ultra Auto)") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Text(
-                    "Accounts 2..4 run headless in the background to alternate taunts on the primary's target.",
+                    "Accounts run headless in the background to alternate taunts on the primary's target. " +
+                        "Scroll of Enrage ItemID is the inventory ID of the scroll for this account.",
                     style = MaterialTheme.typography.bodySmall,
                     color = DimWhite,
                 )
-                if (ui.companions.isEmpty()) {
-                    Text("No companion account added yet.", style = MaterialTheme.typography.bodyMedium)
-                }
-                ui.companions.forEach { account ->
-                    CompanionAccountRow(account = account, onUpdate = { vm.updateCompanion(account.id, it) }, onRemove = { vm.removeCompanion(account.id) })
-                }
                 if (ui.companions.size < MAX_COMPANIONS) {
-                    SecondaryButton("+ Add Companion", vm::addCompanion)
+                    SecondaryButton("+ Add Companion (${ui.companions.size}/$MAX_COMPANIONS)", vm::addCompanion)
+                }
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (ui.companions.isEmpty()) {
+                        Text("No companion account added yet.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    ui.companions.forEach { account ->
+                        CompanionAccountRow(
+                            account = account,
+                            onUpdate = { vm.updateCompanion(account.id, it) },
+                            onRemove = { vm.removeCompanion(account.id) },
+                        )
+                    }
                 }
             }
         },
@@ -161,7 +177,9 @@ private fun CompanionAccountRow(
             OutlinedTextField(
                 value = if (account.consumableItemId == 0) "" else account.consumableItemId.toString(),
                 onValueChange = { v -> onUpdate { it.copy(consumableItemId = v.toIntOrNull() ?: 0) } },
-                label = { Text("Scroll of Enrage ItemID") },
+                label = { Text("Scroll ItemID") },
+                placeholder = { Text("ID inventory scroll akun ini") },
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
         }
